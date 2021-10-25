@@ -631,7 +631,12 @@ class Wall {
             brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
             brushPosition.x += 0.5;
             brushPosition.y = 1.5 - brushPosition.y;
-            debug_1.Debug.set(`x: ${brushPosition.x.toFixed(2)} y: ${brushPosition.y.toFixed(2)}`);
+            debug_1.Debug.set(`[0-1] x: ${brushPosition.x.toFixed(2)} y: ${brushPosition.y.toFixed(2)}`);
+            if (brushPosition.x < 0 || brushPosition.x > 1 ||
+                brushPosition.y < 0 || brushPosition.y > 1) {
+                debug_1.Debug.set(`out of bounds.`);
+                return;
+            }
             // brushPosition is now [0,1]
             // x = 0.5 * 1 / kWidth + i * 1/kWidth
             // x - 0.5 / kWidth = i / kWidth
