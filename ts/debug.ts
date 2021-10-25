@@ -2,7 +2,8 @@ import * as AFRAME from "aframe";
 
 export class Debug {
   private static text: AFRAME.Entity = null;
-  static init(container: AFRAME.Entity) {
+  static init() {
+    const container = document.querySelector('a-camera');
     Debug.text = document.createElement('a-entity');
     Debug.text.setAttribute('text', 'value: "Hello, World!";');
     Debug.text.setAttribute('position', '0 0.3 -1');

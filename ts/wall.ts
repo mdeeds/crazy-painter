@@ -12,6 +12,7 @@ export class Wall {
   private readonly wallObject = null;
 
   constructor() {
+    Debug.set('Wall');
     const scene = document.querySelector('a-scene');
     const wall = document.createElement('a-entity');
     this.wallObject = wall.object3D;

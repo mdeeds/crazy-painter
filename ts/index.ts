@@ -1,5 +1,6 @@
 import * as AFRAME from "aframe";
 import { Brush } from "./brush";
+import { Debug } from "./debug";
 import { Gait } from "./gait";
 import { Wall } from "./wall";
 
@@ -9,6 +10,7 @@ var gait: Gait = null;
 
 AFRAME.registerComponent("go", {
   init: async function () {
+    Debug.init();
     wall = new Wall();
     gait = new Gait(Gait.walkingGait, document.querySelector('#body'), wall);
     gait.addFoot(document.querySelector('#foot_lh'));

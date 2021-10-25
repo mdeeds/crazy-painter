@@ -82,7 +82,8 @@ exports.Brush = Brush;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Debug = void 0;
 class Debug {
-    static init(container) {
+    static init() {
+        const container = document.querySelector('a-camera');
         Debug.text = document.createElement('a-entity');
         Debug.text.setAttribute('text', 'value: "Hello, World!";');
         Debug.text.setAttribute('position', '0 0.3 -1');
@@ -368,6 +369,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const AFRAME = __importStar(__webpack_require__(449));
 const brush_1 = __webpack_require__(556);
+const debug_1 = __webpack_require__(756);
 const gait_1 = __webpack_require__(232);
 const wall_1 = __webpack_require__(649);
 var brush = null;
@@ -376,6 +378,7 @@ var gait = null;
 AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
+            debug_1.Debug.init();
             wall = new wall_1.Wall();
             gait = new gait_1.Gait(gait_1.Gait.walkingGait, document.querySelector('#body'), wall);
             gait.addFoot(document.querySelector('#foot_lh'));
@@ -574,6 +577,7 @@ class Wall {
         this.kWidth = 30;
         this.kWallWidthMeters = 4;
         this.wallObject = null;
+        debug_1.Debug.set('Wall');
         const scene = document.querySelector('a-scene');
         const wall = document.createElement('a-entity');
         this.wallObject = wall.object3D;
