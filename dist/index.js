@@ -1,6 +1,73 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 556:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Brush = void 0;
+const AFRAME = __importStar(__webpack_require__(449));
+class Brush {
+    constructor(container, leftHand, rightHand) {
+        this.leftHand = leftHand;
+        this.rightHand = rightHand;
+        this.leftBrush = this.makeBrush(container);
+        this.rightBrush = this.makeBrush(container);
+        this.leftMinusRight = new AFRAME.THREE.Vector3();
+    }
+    makeBrush(container) {
+        const brushEntity = document.createElement('a-sphere');
+        brushEntity.setAttribute('radius', '0.2');
+        container.appendChild(brushEntity);
+        return brushEntity.object3D;
+    }
+    clamp(vec) {
+        if (vec.y < 0) {
+            vec.y = 0;
+        }
+        if (vec.z < -2) {
+            // TODO: Get this from the wall, also handle collision and painting.
+            vec.z = -2;
+        }
+    }
+    tick(timeMs, timeDeltaMs) {
+        this.leftMinusRight.copy(this.leftHand.position);
+        this.leftMinusRight.sub(this.rightHand.position);
+        this.leftMinusRight.normalize().multiplyScalar(0.4);
+        this.leftBrush.position.copy(this.leftHand.position);
+        this.leftBrush.position.add(this.leftMinusRight);
+        this.rightBrush.position.copy(this.rightHand.position);
+        this.rightBrush.position.sub(this.leftMinusRight);
+        this.clamp(this.leftBrush.position);
+        this.clamp(this.rightBrush.position);
+    }
+}
+exports.Brush = Brush;
+//# sourceMappingURL=brush.js.map
+
+/***/ }),
+
 /***/ 518:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -266,22 +333,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const AFRAME = __importStar(__webpack_require__(449));
+const brush_1 = __webpack_require__(556);
 const gait_1 = __webpack_require__(232);
 const wall_1 = __webpack_require__(649);
-var feet = null;
-var leftHand = null;
-var leftBrush;
-var rightHand;
-var rightBrush;
-var leftMinusRight = new AFRAME.THREE.Vector3();
-var clamp = function (vec) {
-    if (vec.y < 0) {
-        vec.y = 0;
-    }
-    if (vec.z < -2) {
-        vec.z = -2;
-    }
-};
+var brush = null;
 var wall = null;
 var gait = null;
 AFRAME.registerComponent("go", {
@@ -293,26 +348,15 @@ AFRAME.registerComponent("go", {
             gait.addFoot(document.querySelector('#foot_lf'));
             gait.addFoot(document.querySelector('#foot_rf'));
             gait.addFoot(document.querySelector('#foot_rh'));
-            leftHand = document.querySelector('#leftHand').object3D;
-            leftBrush = document.querySelector('#leftBrush').object3D;
-            rightHand = document.querySelector('#rightHand').object3D;
-            rightBrush = document.querySelector('#rightBrush').object3D;
+            brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D);
         });
     },
     tick: function (timeMs, timeDeltaMs) {
         if (gait != null) {
             gait.setPositions(timeMs);
         }
-        if (leftHand != null) {
-            leftMinusRight.copy(leftHand.position);
-            leftMinusRight.sub(rightHand.position);
-            leftMinusRight.multiplyScalar(3);
-            leftBrush.position.copy(leftHand.position);
-            leftBrush.position.add(leftMinusRight);
-            rightBrush.position.copy(rightHand.position);
-            rightBrush.position.sub(leftMinusRight);
-            clamp(leftBrush.position);
-            clamp(rightBrush.position);
+        if (brush != null) {
+            brush.tick(timeMs, timeDeltaMs);
         }
     }
 });
@@ -328,7 +372,7 @@ body.innerHTML = `
 <a-entity light="type: ambient; color: #222"></a-entity>
 <a-entity light="type:directional; color: #777" position="1800 5000 1200"></a-entity>
 <a-entity id='world'>
-  <a-entity id='dog' rotation='90 0 0' position='0 2 -2'>
+  <a-entity id='dog' rotation='90 0 0' position='0 2 -0.8'>
     <a-box id='body' width=0.2 depth=0.08 height=0.01 position="0 0.02 0" >
       <a-cylinder id='foot_lh' height=0.01 radius=0.01 position= "0.07 -0.02  0.08" ></a-cylinder>
       <a-cylinder id='foot_lf' height=0.01 radius=0.01 position="-0.07 -0.02  0.08" ></a-cylinder>
@@ -343,10 +387,8 @@ body.innerHTML = `
   </a-camera>
   <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly; color: #ffcccc">
   </a-entity>
-  <a-sphere id="leftBrush" radius=0.05> </a-sphere>
   <a-entity id="rightHand" hand-controls="hand: right; handModelStyle: lowPoly; color: #ffcccc">
   </a-entity>
-  <a-sphere id="rightBrush" radius=0.05> </a-sphere>
   </a-entity>
 
 </a-scene>
@@ -501,8 +543,8 @@ class Wall {
         const wallMaterial = new AFRAME.THREE.MeshBasicMaterial({
             map: this.wallTex, transparent: true
         });
-        const wallGeometry = new AFRAME.THREE.PlaneGeometry(3, 3);
-        wallGeometry.translate(0, 1.9, -2);
+        const wallGeometry = new AFRAME.THREE.PlaneGeometry(2, 2);
+        wallGeometry.translate(0, 1.2, -0.8);
         const wallMesh = new AFRAME.THREE.Mesh(wallGeometry, wallMaterial);
         wall.object3D = wallMesh;
         scene.appendChild(wall);

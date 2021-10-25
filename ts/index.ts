@@ -1,32 +1,9 @@
 import * as AFRAME from "aframe";
-import { Feet } from "./feet";
-import { Foot } from "./foot";
+import { Brush } from "./brush";
 import { Gait } from "./gait";
-import { Pod } from "./pod";
 import { Wall } from "./wall";
 
-
-
-var feet: Feet = null;
-
-
-
-var leftHand = null;
-var leftBrush;
-var rightHand;
-var rightBrush;
-
-var leftMinusRight = new AFRAME.THREE.Vector3();
-
-var clamp = function (vec: any) {
-  if (vec.y < 0) {
-    vec.y = 0;
-  }
-  if (vec.z < -2) {
-    vec.z = -2;
-  }
-}
-
+var brush = null;
 var wall: Wall = null;
 var gait: Gait = null;
 
@@ -39,25 +16,16 @@ AFRAME.registerComponent("go", {
     gait.addFoot(document.querySelector('#foot_rf'));
     gait.addFoot(document.querySelector('#foot_rh'));
 
-    leftHand = document.querySelector('#leftHand').object3D;
-    leftBrush = document.querySelector('#leftBrush').object3D;
-    rightHand = document.querySelector('#rightHand').object3D;
-    rightBrush = document.querySelector('#rightBrush').object3D;
+    brush = new Brush(document.querySelector('#player'),
+      document.querySelector('#leftHand').object3D,
+      document.querySelector('#rightHand').object3D);
   },
-  tick: function (timeMs, timeDeltaMs) {
+  tick: function (timeMs: number, timeDeltaMs: number) {
     if (gait != null) {
       gait.setPositions(timeMs);
     }
-    if (leftHand != null) {
-      leftMinusRight.copy(leftHand.position);
-      leftMinusRight.sub(rightHand.position);
-      leftMinusRight.normalize().multiplyScalar(0.4);
-      leftBrush.position.copy(leftHand.position);
-      leftBrush.position.add(leftMinusRight);
-      rightBrush.position.copy(rightHand.position);
-      rightBrush.position.sub(leftMinusRight);
-      clamp(leftBrush.position);
-      clamp(rightBrush.position);
+    if (brush != null) {
+      brush.tick(timeMs, timeDeltaMs);
     }
   }
 });
@@ -74,7 +42,7 @@ body.innerHTML = `
 <a-entity light="type: ambient; color: #222"></a-entity>
 <a-entity light="type:directional; color: #777" position="1800 5000 1200"></a-entity>
 <a-entity id='world'>
-  <a-entity id='dog' rotation='90 0 0' position='0 2 -2'>
+  <a-entity id='dog' rotation='90 0 0' position='0 2 -0.8'>
     <a-box id='body' width=0.2 depth=0.08 height=0.01 position="0 0.02 0" >
       <a-cylinder id='foot_lh' height=0.01 radius=0.01 position= "0.07 -0.02  0.08" ></a-cylinder>
       <a-cylinder id='foot_lf' height=0.01 radius=0.01 position="-0.07 -0.02  0.08" ></a-cylinder>
@@ -89,10 +57,8 @@ body.innerHTML = `
   </a-camera>
   <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly; color: #ffcccc">
   </a-entity>
-  <a-sphere id="leftBrush" radius=0.05> </a-sphere>
   <a-entity id="rightHand" hand-controls="hand: right; handModelStyle: lowPoly; color: #ffcccc">
   </a-entity>
-  <a-sphere id="rightBrush" radius=0.05> </a-sphere>
   </a-entity>
 
 </a-scene>
