@@ -389,11 +389,16 @@ AFRAME.registerComponent("go", {
         });
     },
     tick: function (timeMs, timeDeltaMs) {
-        if (gait != null) {
-            gait.setPositions(timeMs);
+        try {
+            if (gait != null) {
+                gait.setPositions(timeMs);
+            }
+            if (brush != null) {
+                brush.tick(timeMs, timeDeltaMs);
+            }
         }
-        if (brush != null) {
-            brush.tick(timeMs, timeDeltaMs);
+        catch (e) {
+            debug_1.Debug.set(`Tick error: ${e}`);
         }
     }
 });
@@ -577,6 +582,8 @@ class Wall {
         this.kWidth = 30;
         this.kWallWidthMeters = 4;
         this.wallObject = null;
+        // Argument is in world space.
+        this.wallPosition = new AFRAME.THREE.Vector3();
         debug_1.Debug.set('Wall');
         const scene = document.querySelector('a-scene');
         const wall = document.createElement('a-entity');
@@ -595,7 +602,7 @@ class Wall {
         wall.object3D = wallMesh;
         scene.appendChild(wall);
         for (let i = 0; i < this.kWidth * this.kWidth; ++i) {
-            this.blocks.push(Math.round(Math.random()));
+            this.blocks.push(0);
         }
         this.colorMap.set(0, '#f40');
         this.colorMap.set(1, '#820');
@@ -616,15 +623,16 @@ class Wall {
                 }
             }
         }
+        this.wallTex.needsUpdate = true;
     }
-    // Argument is in world space.
     paint(brushPosition, radius) {
         try {
-            this.wallObject.worldToLocal(brushPosition);
-            brushPosition.sub(this.wallObject.position);
+            this.wallObject.getWorldPosition(this.wallPosition);
+            brushPosition.sub(this.wallPosition);
             brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
             brushPosition.x += 0.5;
             brushPosition.y += 0.5;
+            debug_1.Debug.set(`x: ${brushPosition.x} y: ${brushPosition.y}`);
             // brushPosition is now [0,1]
             // x = 0.5 * 1 / kWidth + i * 1/kWidth
             // x - 0.5 / kWidth = i / kWidth

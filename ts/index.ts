@@ -23,11 +23,15 @@ AFRAME.registerComponent("go", {
       document.querySelector('#rightHand').object3D, wall);
   },
   tick: function (timeMs: number, timeDeltaMs: number) {
-    if (gait != null) {
-      gait.setPositions(timeMs);
-    }
-    if (brush != null) {
-      brush.tick(timeMs, timeDeltaMs);
+    try {
+      if (gait != null) {
+        gait.setPositions(timeMs);
+      }
+      if (brush != null) {
+        brush.tick(timeMs, timeDeltaMs);
+      }
+    } catch (e) {
+      Debug.set(`Tick error: ${e}`);
     }
   }
 });

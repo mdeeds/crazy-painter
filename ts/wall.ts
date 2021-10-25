@@ -33,7 +33,7 @@ export class Wall {
     scene.appendChild(wall);
 
     for (let i = 0; i < this.kWidth * this.kWidth; ++i) {
-      this.blocks.push(Math.round(Math.random()));
+      this.blocks.push(0);
     }
     this.colorMap.set(0, '#f40');
     this.colorMap.set(1, '#820');
@@ -59,16 +59,19 @@ export class Wall {
         }
       }
     }
+    this.wallTex.needsUpdate = true;
   }
 
   // Argument is in world space.
+  private wallPosition = new AFRAME.THREE.Vector3();
   public paint(brushPosition: any, radius: number) {
     try {
-      this.wallObject.worldToLocal(brushPosition);
-      brushPosition.sub(this.wallObject.position);
+      this.wallObject.getWorldPosition(this.wallPosition);
+      brushPosition.sub(this.wallPosition);
       brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
       brushPosition.x += 0.5;
       brushPosition.y += 0.5;
+      Debug.set(`x: ${brushPosition.x} y: ${brushPosition.y}`);
       // brushPosition is now [0,1]
       // x = 0.5 * 1 / kWidth + i * 1/kWidth
       // x - 0.5 / kWidth = i / kWidth
