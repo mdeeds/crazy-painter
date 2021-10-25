@@ -1,147 +1,10 @@
 import * as AFRAME from "aframe";
+import { Feet } from "./feet";
+import { Foot } from "./foot";
+import { Pod } from "./pod";
+import { Wall } from "./wall";
 
-class Motion {
-  constructor(
-    readonly p: number, readonly x: number) { }
-}
 
-/**
- * A PWLL is a PieceWise Linear Loop.  It's a piecewise function
- * defined over the interval [0, 1] where the last control point "loops"
- * back around to the first.
- */
-class PWLL {
-  private controlPoints: Motion[] = [];
-  private firstP = 0;
-  private lastP = 0;
-  constructor() { }
-  add(m: Motion) {
-    this.controlPoints.push(m);
-    this.controlPoints.sort((a: Motion, b: Motion) => a.p - b.p)
-    this.lastP = this.controlPoints[this.controlPoints.length - 1].p;
-    this.firstP = this.controlPoints[0].p;
-  }
-
-  log() {
-    console.log(this.controlPoints);
-  }
-
-  getXdX(p: number): number[] {
-    let q = 0;
-    let len = 0;
-    let i = 0;
-    let j = 0;
-    if (p > this.lastP) {
-      q = (p - this.lastP);
-      len = 1 - this.lastP + this.firstP;
-      i = this.controlPoints.length - 1;
-      j = 0;
-    } else if (p < this.firstP) {
-      q = (1 - this.lastP) + p;
-      len = 1 - this.lastP + this.firstP;
-      i = this.controlPoints.length - 1;
-      j = 0;
-    } else {
-      while (p < this.controlPoints[i].p) {
-        ++i;
-      }
-      j = i + 1;
-      q = p - this.controlPoints[i].p;
-      len = this.controlPoints[j].p - this.controlPoints[i].p;
-    }
-    const x = (q / len) * this.controlPoints[j].x
-      + (1 - q / len) * this.controlPoints[i].x;
-    const dx = (this.controlPoints[j].x - this.controlPoints[i].x) / len;
-    return [x, dx];
-  }
-}
-
-class Pod {
-  private position: PWLL;
-  // #####---  :  [5, 3]
-  // #---####  :  [1, 3, 4]
-  // ####---#  :  [4, 3, 1]
-  // ---#####  :  [0, 3, 5]  // 0 = foot starts up
-
-  constructor(private pattern: number[]) {
-    let down = true;
-    if (pattern[0] == 0) {
-      down = false;
-      pattern.shift();
-    }
-    const totalLength = pattern.reduce((a, b) => a + b, 0);
-
-    let cumulativeLength = 0;
-    this.position = new PWLL();
-
-    if (pattern.length % 2 === 1 && down) {
-      // Odd pattern, so first and last need to be merged.
-      const len = pattern[0] + pattern[pattern.length - 1];
-      const pEnd = pattern[0] / totalLength;
-      const pStart = 1 - (pattern[pattern.length - 1] / totalLength);
-      this.position.add(new Motion(pStart, -len / 2 / totalLength));
-      this.position.add(new Motion(pEnd, len / 2 / totalLength))
-      pattern.shift();
-      pattern.pop();
-      down = false;
-    }
-
-    for (let i = 0; i < pattern.length; ++i) {
-      const len = pattern[i];
-      const p = cumulativeLength / totalLength;
-      if (down) {
-        this.position.add(new Motion(p, -len / 2 / totalLength));
-        let x = len / totalLength;
-        this.position.add(new Motion(p + x, len / 2 / totalLength));
-      }
-      down = !down;
-      cumulativeLength += len;
-    }
-    this.position.log();
-  }
-
-  getXdX(p: number): number[] {
-    return this.position.getXdX(p);
-  }
-}
-
-class Foot {
-  private initialPosition: any;
-  private static kLift = 0.02;
-  constructor(private pod: Pod, private foot: AFRAME.Entity) {
-    this.initialPosition = new AFRAME.THREE.Vector3();
-    this.initialPosition.copy(foot.object3D.position);
-  }
-
-  setPosition(p: number, gaitM: number) {
-    const [x, dx] = this.pod.getXdX(p);
-    this.foot.object3D.position.copy(this.initialPosition);
-    this.foot.object3D.position.x += x * gaitM;
-    if (dx < 0) {
-      this.foot.object3D.position.y += Foot.kLift;
-    }
-  }
-}
-
-class Feet {
-  private feet: Foot[] = [];
-  // `gaitM` : Distance traveled in one cycle of the gait.
-  // `gaitMS` : Duration of the gait in milliseconds
-  constructor(private gaitM: number, private gaitMS: number,
-    private body: AFRAME.Entity) { }
-  add(foot: Foot) {
-    this.feet.push(foot);
-  }
-  setPositions(timeMs: number) {
-    const p = (timeMs / this.gaitMS) % 1; // percentage of 800ms
-    for (const foot of this.feet) {
-      foot.setPosition(p, this.gaitM);
-    }
-    const seconds = ((timeMs % 3000) - 1500) / 1000;
-    const mps = this.gaitM / (this.gaitMS / 1000);
-    this.body.object3D.position.x = -mps * seconds;
-  }
-}
 
 var feet: Feet = null;
 var dogObject = null;
@@ -286,56 +149,6 @@ function lizardTrot() {
 //     new Pod([3, 1]), document.querySelector('#foot4')));
 // }
 
-var blocks: any[] = [];
-
-var canvas: HTMLCanvasElement = null;
-var wallTex = null;
-
-var updateCanvas = function (timeMs: number) {
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  const kWidth = 30;
-
-  const boxWidth = canvas.width / kWidth;
-  ctx.fillStyle = 'pink';
-  for (let i = 0; i < kWidth; ++i) {
-    for (let j = 0; j < kWidth; ++j) {
-      ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1,
-        boxWidth - 2, boxWidth - 2);
-    }
-  }
-
-  ctx.fillStyle = 'blue';
-  for (let i = 0; i < kWidth; ++i) {
-    for (let j = 0; j < kWidth; ++j) {
-      if (Math.random() > 0.5) {
-        ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1,
-          boxWidth - 2, boxWidth - 2);
-      }
-    }
-  }
-}
-
-var wallOfCanvas = function () {
-  const scene = document.querySelector('a-scene');
-  const wall = document.createElement('a-entity');
-  canvas = document.createElement('canvas') as unknown as HTMLCanvasElement;
-  canvas.width = 1024;
-  canvas.height = 1024;
-
-  wallTex = new AFRAME.THREE.CanvasTexture(canvas);
-  const wallMaterial = new AFRAME.THREE.MeshBasicMaterial({
-    map: wallTex, transparent: true
-  });
-  const wallGeometry = new AFRAME.THREE.PlaneGeometry(3, 3);
-  wallGeometry.translate(0, 1.9, -2);
-  const wallMesh = new AFRAME.THREE.Mesh(wallGeometry, wallMaterial);
-  wall.object3D = wallMesh;
-  scene.appendChild(wall);
-
-  updateCanvas(0);
-}
 
 var leftHand = null;
 var leftBrush;
@@ -353,15 +166,17 @@ var clamp = function (vec: any) {
   }
 }
 
+var wall: Wall = null;
+
 AFRAME.registerComponent("go", {
   init: async function () {
+    wall = new Wall();
     stomp();
     dogObject = document.querySelector('#dog').object3D;
     leftHand = document.querySelector('#leftHand').object3D;
     leftBrush = document.querySelector('#leftBrush').object3D;
     rightHand = document.querySelector('#rightHand').object3D;
     rightBrush = document.querySelector('#rightBrush').object3D;
-    wallOfCanvas();
   },
   tick: function (timeMs, timeDeltaMs) {
     if (feet != null) {
