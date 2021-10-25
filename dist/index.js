@@ -580,10 +580,9 @@ class Wall {
         this.blocks = [];
         this.colorMap = new Map();
         this.kWidth = 30;
-        this.kWallWidthMeters = 4;
+        this.kWallWidthMeters = 2;
         this.wallObject = null;
-        // Argument is in world space.
-        this.wallPosition = new AFRAME.THREE.Vector3();
+        this.wallPosition = null;
         debug_1.Debug.set('Wall');
         const scene = document.querySelector('a-scene');
         const wall = document.createElement('a-entity');
@@ -596,8 +595,9 @@ class Wall {
         const wallMaterial = new AFRAME.THREE.MeshBasicMaterial({
             map: this.wallTex, transparent: true
         });
-        const wallGeometry = new AFRAME.THREE.PlaneGeometry(this.kWallWidthMeters / 2, this.kWallWidthMeters / 2);
-        wallGeometry.translate(0, 1.2, this.wallZ);
+        const wallGeometry = new AFRAME.THREE.PlaneGeometry(this.kWallWidthMeters, this.kWallWidthMeters);
+        this.wallPosition = AFRAME.THREE.Vector3(0, 1.2, this.wallZ);
+        wallGeometry.translate(this.wallPosition.x, this.wallPosition.y, this.wallPosition.z);
         const wallMesh = new AFRAME.THREE.Mesh(wallGeometry, wallMaterial);
         wall.object3D = wallMesh;
         scene.appendChild(wall);
@@ -627,18 +627,17 @@ class Wall {
     }
     paint(brushPosition, radius) {
         try {
-            this.wallObject.getWorldPosition(this.wallPosition);
             brushPosition.sub(this.wallPosition);
-            debug_1.Debug.set(`x: ${brushPosition.x.toFixed(2)} y: ${brushPosition.y.toFixed(2)}`);
             brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
             brushPosition.x += 0.5;
-            brushPosition.y += 0.5;
+            brushPosition.y = 1.5 - brushPosition.y;
+            debug_1.Debug.set(`x: ${brushPosition.x.toFixed(2)} y: ${brushPosition.y.toFixed(2)}`);
             // brushPosition is now [0,1]
             // x = 0.5 * 1 / kWidth + i * 1/kWidth
             // x - 0.5 / kWidth = i / kWidth
-            // kWidth * (x - 0.5) = i
-            const i = Math.round(this.kWidth * (brushPosition.x - 0.5));
-            const j = Math.round(this.kWidth * (brushPosition.y - 0.5));
+            // kWidth * x - 0.5 = i
+            const i = Math.round((this.kWidth * brushPosition.x) - 0.5);
+            const j = Math.round((this.kWidth * brushPosition.y) - 0.5);
             // TODO: Handle radius
             if (this.blocks[i + j * this.kWidth] === 1) {
                 return;
