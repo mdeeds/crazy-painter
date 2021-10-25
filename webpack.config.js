@@ -2,7 +2,7 @@ const HtmlWebPackPlugin = require("html-webpack-plugin");
 
 module.exports = {
   entry: {
-    index: "./src/gait.js",
+    index: "./src/index.js",
   },
   output: {
     path: __dirname + "/dist",
