@@ -68,10 +68,10 @@ export class Wall {
     try {
       this.wallObject.getWorldPosition(this.wallPosition);
       brushPosition.sub(this.wallPosition);
+      Debug.set(`x: ${brushPosition.x.toFixed(2)} y: ${brushPosition.y.toFixed(2)}`);
       brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
       brushPosition.x += 0.5;
       brushPosition.y += 0.5;
-      Debug.set(`x: ${brushPosition.x} y: ${brushPosition.y}`);
       // brushPosition is now [0,1]
       // x = 0.5 * 1 / kWidth + i * 1/kWidth
       // x - 0.5 / kWidth = i / kWidth
