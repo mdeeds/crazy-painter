@@ -51,7 +51,7 @@ AFRAME.registerComponent("go", {
     if (leftHand != null) {
       leftMinusRight.copy(leftHand.position);
       leftMinusRight.sub(rightHand.position);
-      leftMinusRight.multiplyScalar(3);
+      leftMinusRight.normalize().multiplyScalar(0.4);
       leftBrush.position.copy(leftHand.position);
       leftBrush.position.add(leftMinusRight);
       rightBrush.position.copy(rightHand.position);

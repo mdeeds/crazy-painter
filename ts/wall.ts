@@ -13,8 +13,8 @@ export class Wall {
     const wallMaterial = new AFRAME.THREE.MeshBasicMaterial({
       map: this.wallTex, transparent: true
     });
-    const wallGeometry = new AFRAME.THREE.PlaneGeometry(3, 3);
-    wallGeometry.translate(0, 1.9, -2);
+    const wallGeometry = new AFRAME.THREE.PlaneGeometry(2, 2);
+    wallGeometry.translate(0, 1.2, -0.8);
     const wallMesh = new AFRAME.THREE.Mesh(wallGeometry, wallMaterial);
     wall.object3D = wallMesh;
     scene.appendChild(wall);
