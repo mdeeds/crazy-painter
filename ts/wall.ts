@@ -35,8 +35,8 @@ export class Wall {
     for (let i = 0; i < this.kWidth * this.kWidth; ++i) {
       this.blocks.push(0);
     }
-    this.colorMap.set(0, '#f40');
-    this.colorMap.set(1, '#820');
+    this.colorMap.set(0, '#820');
+    this.colorMap.set(1, '#f40');
     this.updateCanvas();
   }
 
