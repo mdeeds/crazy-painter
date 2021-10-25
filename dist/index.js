@@ -29,26 +29,32 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Brush = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 class Brush {
-    constructor(container, leftHand, rightHand) {
+    constructor(container, leftHand, rightHand, wall) {
         this.leftHand = leftHand;
         this.rightHand = rightHand;
+        this.wall = wall;
+        this.kBrushRadius = 0.2;
+        this.brushPosition = new AFRAME.THREE.Vector3();
         this.leftBrush = this.makeBrush(container);
         this.rightBrush = this.makeBrush(container);
         this.leftMinusRight = new AFRAME.THREE.Vector3();
     }
     makeBrush(container) {
         const brushEntity = document.createElement('a-sphere');
-        brushEntity.setAttribute('radius', '0.2');
+        brushEntity.setAttribute('radius', this.kBrushRadius);
         container.appendChild(brushEntity);
         return brushEntity.object3D;
     }
-    clamp(vec) {
+    clamp(obj) {
+        const vec = obj.position;
         if (vec.y < 0) {
             vec.y = 0;
         }
-        if (vec.z < -2) {
-            // TODO: Get this from the wall, also handle collision and painting.
-            vec.z = -2;
+        if (vec.z < this.wall.wallZ) {
+            vec.z = this.wall.wallZ;
+            obj.getWorldPosition(this.brushPosition);
+            // TODO: Handle light touch.
+            this.wall.paint(this.brushPosition, this.kBrushRadius);
         }
     }
     tick(timeMs, timeDeltaMs) {
@@ -59,12 +65,38 @@ class Brush {
         this.leftBrush.position.add(this.leftMinusRight);
         this.rightBrush.position.copy(this.rightHand.position);
         this.rightBrush.position.sub(this.leftMinusRight);
-        this.clamp(this.leftBrush.position);
-        this.clamp(this.rightBrush.position);
+        this.clamp(this.leftBrush);
+        this.clamp(this.rightBrush);
     }
 }
 exports.Brush = Brush;
 //# sourceMappingURL=brush.js.map
+
+/***/ }),
+
+/***/ 756:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Debug = void 0;
+class Debug {
+    static init(container) {
+        Debug.text = document.createElement('a-entity');
+        Debug.text.setAttribute('text', 'value: "Hello, World!";');
+        Debug.text.setAttribute('position', '0 0.3 -1');
+        container.appendChild(Debug.text);
+    }
+    static set(message) {
+        if (Debug.text) {
+            Debug.text.setAttribute('text', `value: ${message};`);
+        }
+    }
+}
+exports.Debug = Debug;
+Debug.text = null;
+//# sourceMappingURL=debug.js.map
 
 /***/ }),
 
@@ -162,10 +194,12 @@ const feet_1 = __webpack_require__(518);
 const foot_1 = __webpack_require__(410);
 const pod_1 = __webpack_require__(629);
 class Gait {
-    constructor(gaitDescriptor, body) {
+    constructor(gaitDescriptor, body, wall) {
         this.gaitDescriptor = gaitDescriptor;
+        this.wall = wall;
         this.footEntities = [];
-        this.feet = new feet_1.Feet(0.3, 600, body);
+        this.feet = new feet_1.Feet(0.12, 600, body);
+        // body.object3D.position.z = wall.wallZ;
     }
     addFoot(entity) {
         this.footEntities.push(entity);
@@ -343,12 +377,12 @@ AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
             wall = new wall_1.Wall();
-            gait = new gait_1.Gait(gait_1.Gait.walkingGait, document.querySelector('#body'));
+            gait = new gait_1.Gait(gait_1.Gait.walkingGait, document.querySelector('#body'), wall);
             gait.addFoot(document.querySelector('#foot_lh'));
             gait.addFoot(document.querySelector('#foot_lf'));
             gait.addFoot(document.querySelector('#foot_rf'));
             gait.addFoot(document.querySelector('#foot_rh'));
-            brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D);
+            brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall);
         });
     },
     tick: function (timeMs, timeDeltaMs) {
@@ -524,30 +558,43 @@ exports.PWLL = PWLL;
 /***/ }),
 
 /***/ 649:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Wall = void 0;
+const debug_1 = __webpack_require__(756);
 class Wall {
     constructor() {
         this.canvas = null;
         this.wallTex = null;
+        this.blocks = [];
+        this.colorMap = new Map();
+        this.kWidth = 30;
+        this.kWallWidthMeters = 4;
+        this.wallObject = null;
         const scene = document.querySelector('a-scene');
         const wall = document.createElement('a-entity');
+        this.wallObject = wall.object3D;
         this.canvas = document.createElement('canvas');
         this.canvas.width = 1024;
         this.canvas.height = 1024;
+        this.wallZ = -0.8;
         this.wallTex = new AFRAME.THREE.CanvasTexture(this.canvas);
         const wallMaterial = new AFRAME.THREE.MeshBasicMaterial({
             map: this.wallTex, transparent: true
         });
-        const wallGeometry = new AFRAME.THREE.PlaneGeometry(2, 2);
-        wallGeometry.translate(0, 1.2, -0.8);
+        const wallGeometry = new AFRAME.THREE.PlaneGeometry(this.kWallWidthMeters / 2, this.kWallWidthMeters / 2);
+        wallGeometry.translate(0, 1.2, this.wallZ);
         const wallMesh = new AFRAME.THREE.Mesh(wallGeometry, wallMaterial);
         wall.object3D = wallMesh;
         scene.appendChild(wall);
+        for (let i = 0; i < this.kWidth * this.kWidth; ++i) {
+            this.blocks.push(Math.round(Math.random()));
+        }
+        this.colorMap.set(0, '#f40');
+        this.colorMap.set(1, '#820');
         this.updateCanvas();
     }
     updateCanvas() {
@@ -555,19 +602,41 @@ class Wall {
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         const kWidth = 30;
         const boxWidth = this.canvas.width / kWidth;
-        ctx.fillStyle = 'pink';
-        for (let i = 0; i < kWidth; ++i) {
-            for (let j = 0; j < kWidth; ++j) {
-                ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1, boxWidth - 2, boxWidth - 2);
-            }
-        }
-        ctx.fillStyle = 'blue';
-        for (let i = 0; i < kWidth; ++i) {
-            for (let j = 0; j < kWidth; ++j) {
-                if (Math.random() > 0.5) {
-                    ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1, boxWidth - 2, boxWidth - 2);
+        for (const [colorIndex, color] of this.colorMap.entries()) {
+            ctx.fillStyle = color;
+            for (let i = 0; i < kWidth; ++i) {
+                for (let j = 0; j < kWidth; ++j) {
+                    if (this.blocks[i + j * this.kWidth] === colorIndex) {
+                        ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1, boxWidth - 2, boxWidth - 2);
+                    }
                 }
             }
+        }
+    }
+    // Argument is in world space.
+    paint(brushPosition, radius) {
+        try {
+            this.wallObject.worldToLocal(brushPosition);
+            brushPosition.sub(this.wallObject.position);
+            brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
+            brushPosition.x += 0.5;
+            brushPosition.y += 0.5;
+            // brushPosition is now [0,1]
+            // x = 0.5 * 1 / kWidth + i * 1/kWidth
+            // x - 0.5 / kWidth = i / kWidth
+            // kWidth * (x - 0.5) = i
+            const i = Math.round(this.kWidth * (brushPosition.x - 0.5));
+            const j = Math.round(this.kWidth * (brushPosition.y - 0.5));
+            // TODO: Handle radius
+            if (this.blocks[i + j * this.kWidth] === 1) {
+                return;
+            }
+            this.blocks[i + j * this.kWidth] = 1;
+            this.updateCanvas();
+            debug_1.Debug.set(`success: ${i}, ${j}`);
+        }
+        catch (e) {
+            debug_1.Debug.set(`error: ${e}`);
         }
     }
 }

@@ -2,6 +2,7 @@ import * as AFRAME from "aframe";
 import { Feet } from "./feet";
 import { Foot } from "./foot";
 import { Pod } from "./pod";
+import { Wall } from "./wall";
 
 export class Gait {
   public static walkingGait = [[9, 7], [1, 7, 8]];
@@ -9,8 +10,9 @@ export class Gait {
   private footEntities: AFRAME.Entity[] = [];
   private feet: Feet;
   constructor(private gaitDescriptor: number[][],
-    body: AFRAME.Entity) {
-    this.feet = new Feet(0.3, 600, body);
+    body: AFRAME.Entity, private wall: Wall) {
+    this.feet = new Feet(0.12, 600, body);
+    // body.object3D.position.z = wall.wallZ;
   }
 
   addFoot(entity: AFRAME.Entity) {

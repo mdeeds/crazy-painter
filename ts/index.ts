@@ -10,7 +10,7 @@ var gait: Gait = null;
 AFRAME.registerComponent("go", {
   init: async function () {
     wall = new Wall();
-    gait = new Gait(Gait.walkingGait, document.querySelector('#body'));
+    gait = new Gait(Gait.walkingGait, document.querySelector('#body'), wall);
     gait.addFoot(document.querySelector('#foot_lh'));
     gait.addFoot(document.querySelector('#foot_lf'));
     gait.addFoot(document.querySelector('#foot_rf'));
@@ -18,7 +18,7 @@ AFRAME.registerComponent("go", {
 
     brush = new Brush(document.querySelector('#player'),
       document.querySelector('#leftHand').object3D,
-      document.querySelector('#rightHand').object3D);
+      document.querySelector('#rightHand').object3D, wall);
   },
   tick: function (timeMs: number, timeDeltaMs: number) {
     if (gait != null) {
