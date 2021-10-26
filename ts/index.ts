@@ -1,12 +1,14 @@
 import * as AFRAME from "aframe";
 import { Brush } from "./brush";
 import { Debug } from "./debug";
+import { EphemeralText } from "./ephemeralText";
 import { Gait } from "./gait";
 import { Wall } from "./wall";
 
 var brush = null;
 var wall: Wall = null;
 var gait: Gait = null;
+var eText: EphemeralText = null;
 
 AFRAME.registerComponent("go", {
   init: async function () {
@@ -21,6 +23,8 @@ AFRAME.registerComponent("go", {
     brush = new Brush(document.querySelector('#player'),
       document.querySelector('#leftHand').object3D,
       document.querySelector('#rightHand').object3D, wall);
+    eText = new EphemeralText(document.querySelector('a-scene'));
+    eText.addText("Let's go!", new AFRAME.THREE.Vector3(0, 1.5, -0.6));
   },
   tick: function (timeMs: number, timeDeltaMs: number) {
     try {
@@ -29,6 +33,9 @@ AFRAME.registerComponent("go", {
       }
       if (brush != null) {
         brush.tick(timeMs, timeDeltaMs);
+      }
+      if (eText != null) {
+        eText.tick(timeMs, timeDeltaMs);
       }
     } catch (e) {
       Debug.set(`Tick error: ${e}`);
