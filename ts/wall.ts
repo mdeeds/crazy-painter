@@ -71,7 +71,7 @@ export class Wall {
       brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
       brushPosition.x += 0.5;
       brushPosition.y = 1.5 - brushPosition.y;
-      Debug.set(`[0-1] x: ${brushPosition.x.toFixed(2)} y: ${brushPosition.y.toFixed(2)}`);
+      // Debug.set(`[0-1] x: ${brushPosition.x.toFixed(2)} y: ${brushPosition.y.toFixed(2)}`);
       if (brushPosition.x < 0 || brushPosition.x > 1 ||
         brushPosition.y < 0 || brushPosition.y > 1) {
         Debug.set(`out of bounds.`);
@@ -81,15 +81,26 @@ export class Wall {
       // x = 0.5 * 1 / kWidth + i * 1/kWidth
       // x - 0.5 / kWidth = i / kWidth
       // kWidth * x - 0.5 = i
-      const i = Math.round((this.kWidth * brushPosition.x) - 0.5);
-      const j = Math.round((this.kWidth * brushPosition.y) - 0.5);
-      // TODO: Handle radius
-      if (this.blocks[i + j * this.kWidth] === 1) {
-        return;
+      const ci = (this.kWidth * brushPosition.x) - 0.5;
+      const cj = (this.kWidth * brushPosition.y) - 0.5;
+      const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
+
+      let hasChanges = false;
+      for (let i = Math.floor(ci - brushRadius); i < Math.ceil(ci + brushRadius); ++i) {
+        for (let j = Math.floor(cj - brushRadius); j < Math.ceil(cj + brushRadius); ++j) {
+          const r2 = (i - ci) * (i - ci) + (j - cj) * (i - cj);
+          if (r2 < brushRadius * brushRadius) {
+            if (this.blocks[i + j * this.kWidth] !== 1) {
+              this.blocks[i + j * this.kWidth] = 1;
+              hasChanges = true;
+            }
+          }
+        }
       }
-      this.blocks[i + j * this.kWidth] = 1;
-      this.updateCanvas();
-      Debug.set(`success: ${i}, ${j}`);
+      if (hasChanges) {
+        Debug.set(`success: ${ci}, ${cj}`);
+        this.updateCanvas();
+      }
     } catch (e) {
       Debug.set(`error: ${e}`);
     }
