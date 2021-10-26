@@ -28,7 +28,7 @@ export class Wall {
     });
     const wallGeometry = new AFRAME.THREE.PlaneGeometry(
       this.kWallWidthMeters, this.kWallWidthMeters);
-    this.wallPosition = AFRAME.THREE.Vector3(0, 1.2, this.wallZ);
+    this.wallPosition = new AFRAME.THREE.Vector3(0, 1.2, this.wallZ);
     wallGeometry.translate(this.wallPosition.x,
       this.wallPosition.y, this.wallPosition.z);
     const wallMesh = new AFRAME.THREE.Mesh(wallGeometry, wallMaterial);
