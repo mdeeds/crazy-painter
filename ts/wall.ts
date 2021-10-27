@@ -12,9 +12,8 @@ export class Wall {
   private readonly kWallWidthMeters = 2;
   private readonly wallObject = null;
   private wallPosition = null;
-  private eText: EphemeralText;
 
-  constructor() {
+  constructor(private eText: EphemeralText) {
     Debug.set('Wall');
     const scene = document.querySelector('a-scene');
     this.eText = new EphemeralText(scene);
@@ -84,10 +83,8 @@ export class Wall {
       brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
       brushPosition.x += 0.5;
       brushPosition.y = 0.5 - brushPosition.y;
-      // Debug.set(`[0-1] x: ${brushPosition.x.toFixed(2)} y: ${brushPosition.y.toFixed(2)}`);
       if (brushPosition.x < 0 || brushPosition.x > 1 ||
         brushPosition.y < 0 || brushPosition.y > 1) {
-        Debug.set(`out of bounds: ${brushPosition.x.toFixed(2)} ${brushPosition.y.toFixed(2)}`);
         return;
       }
       // brushPosition is now [0,1]
@@ -104,7 +101,7 @@ export class Wall {
           if (r2 < brushRadius * brushRadius) {
             if (this.blocks[i + j * this.kWidth] !== 1) {
               const wx = this.worldXForI(i);
-              const wy = this.worldYForJ(i);
+              const wy = this.worldYForJ(j);
               this.blocks[i + j * this.kWidth] = 1;
               this.eText.addText("+1", wx, wy, this.wallZ + 0.02);
               hasChanges = true;
@@ -113,7 +110,6 @@ export class Wall {
         }
       }
       if (hasChanges) {
-        Debug.set(`success: ${ci}, ${cj}`);
         this.updateCanvas();
       }
     } catch (e) {

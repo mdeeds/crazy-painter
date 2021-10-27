@@ -13,7 +13,9 @@ var eText: EphemeralText = null;
 AFRAME.registerComponent("go", {
   init: async function () {
     Debug.init();
-    wall = new Wall();
+    eText = new EphemeralText(document.querySelector('a-scene'));
+    eText.addText("Let's go!", 0, 1.5, -0.6);
+    wall = new Wall(eText);
     gait = new Gait(Gait.walkingGait, document.querySelector('#body'), wall);
     gait.addFoot(document.querySelector('#foot_lh'));
     gait.addFoot(document.querySelector('#foot_lf'));
@@ -23,8 +25,6 @@ AFRAME.registerComponent("go", {
     brush = new Brush(document.querySelector('#player'),
       document.querySelector('#leftHand').object3D,
       document.querySelector('#rightHand').object3D, wall);
-    eText = new EphemeralText(document.querySelector('a-scene'));
-    eText.addText("Let's go!", 0, 1.5, -0.6);
   },
   tick: function (timeMs: number, timeDeltaMs: number) {
     try {

@@ -449,15 +449,15 @@ AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
             debug_1.Debug.init();
-            wall = new wall_1.Wall();
+            eText = new ephemeralText_1.EphemeralText(document.querySelector('a-scene'));
+            eText.addText("Let's go!", 0, 1.5, -0.6);
+            wall = new wall_1.Wall(eText);
             gait = new gait_1.Gait(gait_1.Gait.walkingGait, document.querySelector('#body'), wall);
             gait.addFoot(document.querySelector('#foot_lh'));
             gait.addFoot(document.querySelector('#foot_lf'));
             gait.addFoot(document.querySelector('#foot_rf'));
             gait.addFoot(document.querySelector('#foot_rh'));
             brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall);
-            eText = new ephemeralText_1.EphemeralText(document.querySelector('a-scene'));
-            eText.addText("Let's go!", 0, 1.5, -0.6);
         });
     },
     tick: function (timeMs, timeDeltaMs) {
@@ -650,7 +650,8 @@ exports.Wall = void 0;
 const debug_1 = __webpack_require__(756);
 const ephemeralText_1 = __webpack_require__(283);
 class Wall {
-    constructor() {
+    constructor(eText) {
+        this.eText = eText;
         this.canvas = null;
         this.wallTex = null;
         this.blocks = [];
@@ -716,10 +717,8 @@ class Wall {
             brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
             brushPosition.x += 0.5;
             brushPosition.y = 0.5 - brushPosition.y;
-            // Debug.set(`[0-1] x: ${brushPosition.x.toFixed(2)} y: ${brushPosition.y.toFixed(2)}`);
             if (brushPosition.x < 0 || brushPosition.x > 1 ||
                 brushPosition.y < 0 || brushPosition.y > 1) {
-                debug_1.Debug.set(`out of bounds: ${brushPosition.x.toFixed(2)} ${brushPosition.y.toFixed(2)}`);
                 return;
             }
             // brushPosition is now [0,1]
@@ -736,7 +735,7 @@ class Wall {
                     if (r2 < brushRadius * brushRadius) {
                         if (this.blocks[i + j * this.kWidth] !== 1) {
                             const wx = this.worldXForI(i);
-                            const wy = this.worldYForJ(i);
+                            const wy = this.worldYForJ(j);
                             this.blocks[i + j * this.kWidth] = 1;
                             this.eText.addText("+1", wx, wy, this.wallZ + 0.02);
                             hasChanges = true;
@@ -745,7 +744,6 @@ class Wall {
                 }
             }
             if (hasChanges) {
-                debug_1.Debug.set(`success: ${ci}, ${cj}`);
                 this.updateCanvas();
             }
         }
