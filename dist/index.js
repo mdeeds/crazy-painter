@@ -445,7 +445,6 @@ var brush = null;
 var wall = null;
 var gait = null;
 var eText = null;
-var lastBeat = -1;
 AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
@@ -463,11 +462,6 @@ AFRAME.registerComponent("go", {
     },
     tick: function (timeMs, timeDeltaMs) {
         try {
-            const beat = Math.round(timeMs / 100);
-            if (beat != lastBeat) {
-                lastBeat = beat;
-                eText.addText("+1", Math.random() - 0.5, 1.5, -0.6);
-            }
             if (gait != null) {
                 gait.setPositions(timeMs);
             }
@@ -654,7 +648,6 @@ exports.PWLL = PWLL;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Wall = void 0;
 const debug_1 = __webpack_require__(756);
-const ephemeralText_1 = __webpack_require__(283);
 class Wall {
     constructor(eText) {
         this.eText = eText;
@@ -668,7 +661,6 @@ class Wall {
         this.wallPosition = null;
         debug_1.Debug.set('Wall');
         const scene = document.querySelector('a-scene');
-        this.eText = new ephemeralText_1.EphemeralText(scene);
         const wall = document.createElement('a-entity');
         this.wallObject = wall.object3D;
         this.canvas = document.createElement('canvas');
@@ -743,7 +735,7 @@ class Wall {
                             const wx = this.worldXForI(i);
                             const wy = this.worldYForJ(j);
                             this.blocks[i + j * this.kWidth] = 1;
-                            this.eText.addText(`${Math.random().toFixed(2)}`, wx, wy, this.wallZ + 0.02);
+                            this.eText.addText(`+1`, wx, wy, this.wallZ + 0.02);
                             hasChanges = true;
                         }
                     }

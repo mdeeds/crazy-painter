@@ -16,7 +16,6 @@ export class Wall {
   constructor(private eText: EphemeralText) {
     Debug.set('Wall');
     const scene = document.querySelector('a-scene');
-    this.eText = new EphemeralText(scene);
     const wall = document.createElement('a-entity');
     this.wallObject = wall.object3D;
     this.canvas = document.createElement('canvas') as unknown as HTMLCanvasElement;
@@ -103,7 +102,7 @@ export class Wall {
               const wx = this.worldXForI(i);
               const wy = this.worldYForJ(j);
               this.blocks[i + j * this.kWidth] = 1;
-              this.eText.addText(`${Math.random().toFixed(2)}`, wx, wy, this.wallZ + 0.02);
+              this.eText.addText(`+1`, wx, wy, this.wallZ + 0.02);
               hasChanges = true;
             }
           }
