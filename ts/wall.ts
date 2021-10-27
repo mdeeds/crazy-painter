@@ -68,12 +68,12 @@ export class Wall {
   }
 
   private worldXForI(i: number) {
-    return i / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
+    return (i + 0.5) / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
       + this.wallPosition.x;
   }
 
   private worldYForJ(i: number) {
-    return i / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
+    return (this.kWidth - i - 0.5) / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
       + this.wallPosition.y;
   }
 

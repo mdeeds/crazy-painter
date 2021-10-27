@@ -5,17 +5,22 @@ class TextBlurb {
   private remainingTimeMs = 1000;
   private entity: AFRAME.Entity;
   private done: boolean = false;
-  constructor(container: AFRAME.Entity, message: string,
-    x: number, y: number, z: number) {
+  constructor(private container: AFRAME.Entity) {
     this.entity = document.createElement('a-entity');
+    this.container.appendChild(this.entity);
+  }
+
+  set(message: string, x: number, y: number, z: number) {
+    this.entity.setAttribute('visible', 'true');
+    this.remainingTimeMs = 1000;
     this.entity.setAttribute('text',
       `value: ${message}; align: center; wrap-count: 8; width: 0.2`);
     this.entity.object3D.position.set(x, y, z);
-    container.appendChild(this.entity);
+    this.done = false;
   }
 
   dispose() {
-    this.entity.remove();
+    this.entity.setAttribute('visible', 'false');
     this.remainingTimeMs = 0;
     this.done = true;
   }
@@ -38,25 +43,21 @@ export class EphemeralText {
   private textItems: TextBlurb[] = [];
   private kCapacity: number = 12;
   private nextSlot = 0;
-  constructor(private scene: AFRAME.Entity) { }
+  constructor(private scene: AFRAME.Entity) {
+    for (let i = 0; i < this.kCapacity; ++i) {
+      this.textItems.push(new TextBlurb(scene));
+    }
+  }
 
   addText(message: string, x: number, y: number, z: number) {
-    if (this.textItems[this.nextSlot]) {
-      this.textItems[this.nextSlot].dispose();
-    }
-    const item = new TextBlurb(this.scene, message, x, y, z);
-    this.textItems[this.nextSlot] = item;
+    this.textItems[this.nextSlot].set(message, x, y, z);
     this.nextSlot = (this.nextSlot + 1) % this.kCapacity;
   }
 
   tick(timeMs: number, timeDeltaMs: number) {
     for (let i = 0; i < this.kCapacity; ++i) {
-      if (this.textItems[i]) {
-        if (this.textItems[i].isDone()) {
-          this.textItems[i] = null;
-        } else {
-          this.textItems[i].tick(timeMs, timeDeltaMs);
-        }
+      if (!this.textItems[i].isDone()) {
+        this.textItems[i].tick(timeMs, timeDeltaMs);
       }
     }
   }

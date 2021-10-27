@@ -110,16 +110,22 @@ Debug.text = null;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EphemeralText = void 0;
 class TextBlurb {
-    constructor(container, message, x, y, z) {
+    constructor(container) {
+        this.container = container;
         this.remainingTimeMs = 1000;
         this.done = false;
         this.entity = document.createElement('a-entity');
+        this.container.appendChild(this.entity);
+    }
+    set(message, x, y, z) {
+        this.entity.setAttribute('visible', 'true');
+        this.remainingTimeMs = 1000;
         this.entity.setAttribute('text', `value: ${message}; align: center; wrap-count: 8; width: 0.2`);
         this.entity.object3D.position.set(x, y, z);
-        container.appendChild(this.entity);
+        this.done = false;
     }
     dispose() {
-        this.entity.remove();
+        this.entity.setAttribute('visible', 'false');
         this.remainingTimeMs = 0;
         this.done = true;
     }
@@ -142,24 +148,18 @@ class EphemeralText {
         this.textItems = [];
         this.kCapacity = 12;
         this.nextSlot = 0;
+        for (let i = 0; i < this.kCapacity; ++i) {
+            this.textItems.push(new TextBlurb(scene));
+        }
     }
     addText(message, x, y, z) {
-        if (this.textItems[this.nextSlot]) {
-            this.textItems[this.nextSlot].dispose();
-        }
-        const item = new TextBlurb(this.scene, message, x, y, z);
-        this.textItems[this.nextSlot] = item;
+        this.textItems[this.nextSlot].set(message, x, y, z);
         this.nextSlot = (this.nextSlot + 1) % this.kCapacity;
     }
     tick(timeMs, timeDeltaMs) {
         for (let i = 0; i < this.kCapacity; ++i) {
-            if (this.textItems[i]) {
-                if (this.textItems[i].isDone()) {
-                    this.textItems[i] = null;
-                }
-                else {
-                    this.textItems[i].tick(timeMs, timeDeltaMs);
-                }
+            if (!this.textItems[i].isDone()) {
+                this.textItems[i].tick(timeMs, timeDeltaMs);
             }
         }
     }
@@ -704,11 +704,11 @@ class Wall {
         this.wallTex.needsUpdate = true;
     }
     worldXForI(i) {
-        return i / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
+        return (i + 0.5) / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
             + this.wallPosition.x;
     }
     worldYForJ(i) {
-        return i / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
+        return (this.kWidth - i - 0.5) / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
             + this.wallPosition.y;
     }
     paint(brushPosition, radius) {
