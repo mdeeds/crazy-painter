@@ -41,7 +41,6 @@ export class Pod {
       down = !down;
       cumulativeLength += len;
     }
-    this.position.log();
   }
 
   getXdX(p: number): number[] {

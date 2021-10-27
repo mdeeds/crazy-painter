@@ -149,10 +149,19 @@ class Can {
     constructor(container, brushes) {
         this.container = container;
         this.brushes = brushes;
-        const model = document.createElement('a-cylinder');
-        model.setAttribute('color', 'orange');
-        model.setAttribute('height', '0.25');
-        model.setAttribute('radius', '0.10');
+        const model = document.createElement('a-entity');
+        const dark = document.createElement('a-entity');
+        dark.setAttribute('obj-model', `obj: obj/bucket-dark.obj`);
+        dark.setAttribute('material', 'color: orange; side: double');
+        dark.setAttribute('scale', '0.1 0.1 0.1');
+        model.appendChild(dark);
+        const neon = document.createElement('a-entity');
+        neon.setAttribute('obj-model', `obj: obj/bucket-neon.obj`);
+        neon.setAttribute('scale', '0.1 0.1 0.1');
+        neon.setAttribute('material', 'color: orange; shader: flat; side: double');
+        model.appendChild(neon);
+        // model.setAttribute('height', '0.25');
+        // model.setAttribute('radius', '0.10');
         model.setAttribute('position', '0 0.125 0');
         container.appendChild(model);
         this.canPosition = new AFRAME.THREE.Vector3();
@@ -703,7 +712,6 @@ class Pod {
             down = !down;
             cumulativeLength += len;
         }
-        this.position.log();
     }
     getXdX(p) {
         return this.position.getXdX(p);
@@ -744,9 +752,6 @@ class PWLL {
         this.controlPoints.sort((a, b) => a.p - b.p);
         this.lastP = this.controlPoints[this.controlPoints.length - 1].p;
         this.firstP = this.controlPoints[0].p;
-    }
-    log() {
-        console.log(this.controlPoints);
     }
     getXdX(p) {
         let q = 0;

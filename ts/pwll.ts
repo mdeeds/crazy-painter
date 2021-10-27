@@ -20,10 +20,6 @@ export class PWLL {
     this.firstP = this.controlPoints[0].p;
   }
 
-  log() {
-    console.log(this.controlPoints);
-  }
-
   getXdX(p: number): number[] {
     let q = 0;
     let len = 0;
