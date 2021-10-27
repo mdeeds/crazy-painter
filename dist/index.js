@@ -445,6 +445,7 @@ var brush = null;
 var wall = null;
 var gait = null;
 var eText = null;
+var lastBeat = -1;
 AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
@@ -462,6 +463,11 @@ AFRAME.registerComponent("go", {
     },
     tick: function (timeMs, timeDeltaMs) {
         try {
+            const beat = Math.round(timeMs / 100);
+            if (beat != lastBeat) {
+                lastBeat = beat;
+                eText.addText("+1", Math.random() - 0.5, 1.5, -0.6);
+            }
             if (gait != null) {
                 gait.setPositions(timeMs);
             }
@@ -737,7 +743,7 @@ class Wall {
                             const wx = this.worldXForI(i);
                             const wy = this.worldYForJ(j);
                             this.blocks[i + j * this.kWidth] = 1;
-                            this.eText.addText("+1", wx, wy, this.wallZ + 0.02);
+                            this.eText.addText(`${Math.random().toFixed(2)}`, wx, wy, this.wallZ + 0.02);
                             hasChanges = true;
                         }
                     }

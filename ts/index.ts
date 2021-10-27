@@ -10,6 +10,8 @@ var wall: Wall = null;
 var gait: Gait = null;
 var eText: EphemeralText = null;
 
+var lastBeat = -1;
+
 AFRAME.registerComponent("go", {
   init: async function () {
     Debug.init();
@@ -28,6 +30,12 @@ AFRAME.registerComponent("go", {
   },
   tick: function (timeMs: number, timeDeltaMs: number) {
     try {
+      const beat = Math.round(timeMs / 100);
+      if (beat != lastBeat) {
+        lastBeat = beat;
+        eText.addText("+1", Math.random() - 0.5, 1.5, -0.6);
+      }
+
       if (gait != null) {
         gait.setPositions(timeMs);
       }

@@ -103,7 +103,7 @@ export class Wall {
               const wx = this.worldXForI(i);
               const wy = this.worldYForJ(j);
               this.blocks[i + j * this.kWidth] = 1;
-              this.eText.addText("+1", wx, wy, this.wallZ + 0.02);
+              this.eText.addText(`${Math.random().toFixed(2)}`, wx, wy, this.wallZ + 0.02);
               hasChanges = true;
             }
           }
