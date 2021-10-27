@@ -26,9 +26,26 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Brush = void 0;
+exports.Brush = exports.PaintBrush = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 const debug_1 = __webpack_require__(756);
+class PaintBrush {
+    constructor(obj) {
+        this.obj = obj;
+        this.kPaintCapacity = 120;
+    }
+    getSupply() {
+        return this.supply;
+    }
+    removeSupply(n) {
+        this.supply = Math.max(0, this.supply - n);
+    }
+    dip(color) {
+        this.color = color;
+        this.supply = this.kPaintCapacity;
+    }
+}
+exports.PaintBrush = PaintBrush;
 class Brush {
     constructor(container, leftHand, rightHand, wall) {
         this.leftHand = leftHand;
@@ -44,9 +61,10 @@ class Brush {
         const brushEntity = document.createElement('a-sphere');
         brushEntity.setAttribute('radius', this.kBrushRadius);
         container.appendChild(brushEntity);
-        return brushEntity.object3D;
+        return new PaintBrush(brushEntity.object3D);
     }
-    clamp(obj) {
+    clamp(brush) {
+        const obj = brush.obj;
         const vec = obj.position;
         if (vec.y < 0) {
             vec.y = 0;
@@ -54,7 +72,7 @@ class Brush {
         if (vec.z - this.kBrushRadius < this.wall.wallZ) {
             obj.getWorldPosition(this.brushPosition);
             if (vec.z < this.wall.wallZ) {
-                this.wall.paint(this.brushPosition, this.kBrushRadius);
+                this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
                 vec.z = this.wall.wallZ;
             }
             else {
@@ -64,7 +82,7 @@ class Brush {
                 // c = sqrt(r^2 - d^2)
                 const c = Math.sqrt(this.kBrushRadius * this.kBrushRadius - d * d);
                 if (c > 0) {
-                    this.wall.paint(this.brushPosition, c);
+                    this.wall.paint(this.brushPosition, c, brush);
                 }
             }
         }
@@ -73,10 +91,10 @@ class Brush {
         this.leftMinusRight.copy(this.leftHand.position);
         this.leftMinusRight.sub(this.rightHand.position);
         this.leftMinusRight.normalize().multiplyScalar(0.4);
-        this.leftBrush.position.copy(this.leftHand.position);
-        this.leftBrush.position.add(this.leftMinusRight);
-        this.rightBrush.position.copy(this.rightHand.position);
-        this.rightBrush.position.sub(this.leftMinusRight);
+        this.leftBrush.obj.position.copy(this.leftHand.position);
+        this.leftBrush.obj.position.add(this.leftMinusRight);
+        this.rightBrush.obj.position.copy(this.rightHand.position);
+        this.rightBrush.obj.position.sub(this.leftMinusRight);
         this.clamp(this.leftBrush);
         this.clamp(this.rightBrush);
     }
@@ -673,7 +691,8 @@ class Score {
     }
     add(delta) {
         this.score += delta;
-        this.display.setAttribute('text', `value: ${this.score.toFixed(0)}; align: center; wrap-count: 8; width: 0.2`);
+        this.display.setAttribute('text', `value: ${this.score.toFixed(0)}; ` +
+            `align: center; wrap-count: 8; width: 0.2`);
     }
 }
 exports.Score = Score;
@@ -751,7 +770,7 @@ class Wall {
         return (this.kWidth - i - 0.5) / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
             + this.wallPosition.y;
     }
-    paint(brushPosition, radius) {
+    paint(brushPosition, radius, brush) {
         try {
             brushPosition.sub(this.wallPosition);
             brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
@@ -771,14 +790,26 @@ class Wall {
             let hasChanges = false;
             let deltaPoints = 0;
             for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
+                if (i < 0 || i >= this.kWidth) {
+                    continue;
+                }
                 for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
+                    if (j < 0 || j >= this.kWidth) {
+                        continue;
+                    }
+                    if (deltaPoints >= brush.getSupply()) {
+                        continue;
+                    }
                     const r2 = (i - ci) * (i - ci) + (j - cj) * (i - cj);
                     if (r2 < brushRadius * brushRadius) {
                         if (this.blocks[i + j * this.kWidth] !== 1) {
+                            if (Math.random() * 20 < brush.getSupply()) {
+                                continue;
+                            }
+                            this.blocks[i + j * this.kWidth] = 1;
                             const wx = this.worldXForI(i);
                             const wy = this.worldYForJ(j);
-                            this.blocks[i + j * this.kWidth] = 1;
-                            this.eText.addText(`+1`, wx, wy, this.wallZ + 0.02);
+                            this.eText.addText(`+1`, wx + (Math.random() - 0.5) * 0.01, wy + (Math.random() - 0.5) * 0.01, this.wallZ + Math.random() * 0.05);
                             ++deltaPoints;
                             hasChanges = true;
                         }
@@ -788,6 +819,7 @@ class Wall {
             if (hasChanges) {
                 this.updateCanvas();
                 this.score.add(deltaPoints);
+                brush.removeSupply(deltaPoints);
             }
         }
         catch (e) {

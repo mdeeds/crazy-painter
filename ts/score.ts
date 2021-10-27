@@ -12,6 +12,7 @@ export class Score {
   add(delta: number) {
     this.score += delta;
     this.display.setAttribute('text',
-      `value: ${this.score.toFixed(0)}; align: center; wrap-count: 8; width: 0.2`);
+      `value: ${this.score.toFixed(0)}; ` +
+      `align: center; wrap-count: 8; width: 0.2`);
   }
 }

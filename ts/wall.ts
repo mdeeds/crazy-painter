@@ -1,3 +1,4 @@
+import { Brush, PaintBrush } from "./brush";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
 import { Score } from "./score";
@@ -77,7 +78,7 @@ export class Wall {
       + this.wallPosition.y;
   }
 
-  public paint(brushPosition: any, radius: number) {
+  public paint(brushPosition: any, radius: number, brush: PaintBrush) {
     try {
       brushPosition.sub(this.wallPosition);
       brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
@@ -97,10 +98,22 @@ export class Wall {
       let hasChanges = false;
       let deltaPoints = 0;
       for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
+        if (i < 0 || i >= this.kWidth) {
+          continue;
+        }
         for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
+          if (j < 0 || j >= this.kWidth) {
+            continue;
+          }
+          if (deltaPoints >= brush.getSupply()) {
+            continue;
+          }
           const r2 = (i - ci) * (i - ci) + (j - cj) * (i - cj);
           if (r2 < brushRadius * brushRadius) {
             if (this.blocks[i + j * this.kWidth] !== 1) {
+              if (Math.random() * 20 < brush.getSupply()) {
+                continue;
+              }
               this.blocks[i + j * this.kWidth] = 1;
               const wx = this.worldXForI(i);
               const wy = this.worldYForJ(j);
@@ -117,6 +130,7 @@ export class Wall {
       if (hasChanges) {
         this.updateCanvas();
         this.score.add(deltaPoints);
+        brush.removeSupply(deltaPoints);
       }
     } catch (e) {
       Debug.set(`error: ${e}`);
