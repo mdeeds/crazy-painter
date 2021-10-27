@@ -24,7 +24,7 @@ AFRAME.registerComponent("go", {
       document.querySelector('#leftHand').object3D,
       document.querySelector('#rightHand').object3D, wall);
     eText = new EphemeralText(document.querySelector('a-scene'));
-    eText.addText("Let's go!", new AFRAME.THREE.Vector3(0, 1.5, -0.6));
+    eText.addText("Let's go!", 0, 1.5, -0.6);
   },
   tick: function (timeMs: number, timeDeltaMs: number) {
     try {

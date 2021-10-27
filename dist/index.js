@@ -86,7 +86,8 @@ class Debug {
         const container = document.querySelector('a-camera');
         Debug.text = document.createElement('a-entity');
         Debug.text.setAttribute('text', 'value: "Hello, World!";');
-        Debug.text.setAttribute('position', '0 0.3 -1');
+        Debug.text.setAttribute('width', '0.5');
+        Debug.text.setAttribute('position', '0 0.2 -0.7');
         container.appendChild(Debug.text);
     }
     static set(message) {
@@ -98,6 +99,73 @@ class Debug {
 exports.Debug = Debug;
 Debug.text = null;
 //# sourceMappingURL=debug.js.map
+
+/***/ }),
+
+/***/ 283:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EphemeralText = void 0;
+class TextBlurb {
+    constructor(container, message, x, y, z) {
+        this.remainingTimeMs = 1000;
+        this.done = false;
+        this.entity = document.createElement('a-entity');
+        this.entity.setAttribute('text', `value: ${message}; align: center; wrap-count: 8; width: 0.2`);
+        this.entity.object3D.position.set(x, y, z);
+        container.appendChild(this.entity);
+    }
+    dispose() {
+        this.entity.remove();
+        this.remainingTimeMs = 0;
+        this.done = true;
+    }
+    isDone() {
+        return this.done;
+    }
+    tick(timeMs, timeDeltaMs) {
+        this.remainingTimeMs -= timeDeltaMs;
+        if (this.remainingTimeMs <= 0) {
+            this.dispose();
+        }
+        else {
+            this.entity.object3D.position.y += timeDeltaMs / 3000;
+        }
+    }
+}
+class EphemeralText {
+    constructor(scene) {
+        this.scene = scene;
+        this.textItems = [];
+        this.kCapacity = 12;
+        this.nextSlot = 0;
+    }
+    addText(message, x, y, z) {
+        if (this.textItems[this.nextSlot]) {
+            this.textItems[this.nextSlot].dispose();
+        }
+        const item = new TextBlurb(this.scene, message, x, y, z);
+        this.textItems[this.nextSlot] = item;
+        this.nextSlot = (this.nextSlot + 1) % this.kCapacity;
+    }
+    tick(timeMs, timeDeltaMs) {
+        for (let i = 0; i < this.kCapacity; ++i) {
+            if (this.textItems[i]) {
+                if (this.textItems[i].isDone()) {
+                    this.textItems[i] = null;
+                }
+                else {
+                    this.textItems[i].tick(timeMs, timeDeltaMs);
+                }
+            }
+        }
+    }
+}
+exports.EphemeralText = EphemeralText;
+//# sourceMappingURL=ephemeralText.js.map
 
 /***/ }),
 
@@ -370,11 +438,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const AFRAME = __importStar(__webpack_require__(449));
 const brush_1 = __webpack_require__(556);
 const debug_1 = __webpack_require__(756);
+const ephemeralText_1 = __webpack_require__(283);
 const gait_1 = __webpack_require__(232);
 const wall_1 = __webpack_require__(649);
 var brush = null;
 var wall = null;
 var gait = null;
+var eText = null;
 AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
@@ -386,6 +456,8 @@ AFRAME.registerComponent("go", {
             gait.addFoot(document.querySelector('#foot_rf'));
             gait.addFoot(document.querySelector('#foot_rh'));
             brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall);
+            eText = new ephemeralText_1.EphemeralText(document.querySelector('a-scene'));
+            eText.addText("Let's go!", 0, 1.5, -0.6);
         });
     },
     tick: function (timeMs, timeDeltaMs) {
@@ -395,6 +467,9 @@ AFRAME.registerComponent("go", {
             }
             if (brush != null) {
                 brush.tick(timeMs, timeDeltaMs);
+            }
+            if (eText != null) {
+                eText.tick(timeMs, timeDeltaMs);
             }
         }
         catch (e) {
@@ -573,6 +648,7 @@ exports.PWLL = PWLL;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Wall = void 0;
 const debug_1 = __webpack_require__(756);
+const ephemeralText_1 = __webpack_require__(283);
 class Wall {
     constructor() {
         this.canvas = null;
@@ -585,6 +661,7 @@ class Wall {
         this.wallPosition = null;
         debug_1.Debug.set('Wall');
         const scene = document.querySelector('a-scene');
+        this.eText = new ephemeralText_1.EphemeralText(scene);
         const wall = document.createElement('a-entity');
         this.wallObject = wall.object3D;
         this.canvas = document.createElement('canvas');
@@ -625,6 +702,14 @@ class Wall {
         }
         this.wallTex.needsUpdate = true;
     }
+    worldXForI(i) {
+        return i / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
+            + this.wallPosition.x;
+    }
+    worldYForJ(i) {
+        return i / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
+            + this.wallPosition.y;
+    }
     paint(brushPosition, radius) {
         try {
             brushPosition.sub(this.wallPosition);
@@ -645,12 +730,15 @@ class Wall {
             const cj = (this.kWidth * brushPosition.y) - 0.5;
             const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
             let hasChanges = false;
-            for (let i = Math.floor(ci - brushRadius); i < Math.ceil(ci + brushRadius); ++i) {
-                for (let j = Math.floor(cj - brushRadius); j < Math.ceil(cj + brushRadius); ++j) {
+            for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
+                for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
                     const r2 = (i - ci) * (i - ci) + (j - cj) * (i - cj);
                     if (r2 < brushRadius * brushRadius) {
                         if (this.blocks[i + j * this.kWidth] !== 1) {
+                            const wx = this.worldXForI(i);
+                            const wy = this.worldYForJ(i);
                             this.blocks[i + j * this.kWidth] = 1;
+                            this.eText.addText("+1", wx, wy, this.wallZ + 0.02);
                             hasChanges = true;
                         }
                     }

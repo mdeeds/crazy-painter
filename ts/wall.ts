@@ -1,4 +1,5 @@
 import { Debug } from "./debug";
+import { EphemeralText } from "./ephemeralText";
 
 export class Wall {
   private canvas: HTMLCanvasElement = null;
@@ -11,10 +12,12 @@ export class Wall {
   private readonly kWallWidthMeters = 2;
   private readonly wallObject = null;
   private wallPosition = null;
+  private eText: EphemeralText;
 
   constructor() {
     Debug.set('Wall');
     const scene = document.querySelector('a-scene');
+    this.eText = new EphemeralText(scene);
     const wall = document.createElement('a-entity');
     this.wallObject = wall.object3D;
     this.canvas = document.createElement('canvas') as unknown as HTMLCanvasElement;
@@ -65,6 +68,16 @@ export class Wall {
     this.wallTex.needsUpdate = true;
   }
 
+  private worldXForI(i: number) {
+    return i / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
+      + this.wallPosition.x;
+  }
+
+  private worldYForJ(i: number) {
+    return i / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
+      + this.wallPosition.y;
+  }
+
   public paint(brushPosition: any, radius: number) {
     try {
       brushPosition.sub(this.wallPosition);
@@ -84,14 +97,16 @@ export class Wall {
       const ci = (this.kWidth * brushPosition.x) - 0.5;
       const cj = (this.kWidth * brushPosition.y) - 0.5;
       const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
-
       let hasChanges = false;
-      for (let i = Math.floor(ci - brushRadius); i < Math.ceil(ci + brushRadius); ++i) {
-        for (let j = Math.floor(cj - brushRadius); j < Math.ceil(cj + brushRadius); ++j) {
+      for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
+        for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
           const r2 = (i - ci) * (i - ci) + (j - cj) * (i - cj);
           if (r2 < brushRadius * brushRadius) {
             if (this.blocks[i + j * this.kWidth] !== 1) {
+              const wx = this.worldXForI(i);
+              const wy = this.worldYForJ(i);
               this.blocks[i + j * this.kWidth] = 1;
+              this.eText.addText("+1", wx, wy, this.wallZ + 0.02);
               hasChanges = true;
             }
           }
