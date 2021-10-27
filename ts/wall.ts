@@ -110,13 +110,13 @@ export class Wall {
           const r2 = (i - ci) * (i - ci) + (j - cj) * (i - cj);
           if (r2 < brushRadius * brushRadius) {
             if (this.blocks[i + j * this.kWidth] !== 1) {
-              if (Math.random() * 20 < brush.getSupply()) {
+              if (Math.random() * 20 > brush.getSupply()) {
                 continue;
               }
               this.blocks[i + j * this.kWidth] = 1;
               const wx = this.worldXForI(i);
               const wy = this.worldYForJ(j);
-              this.eText.addText(`+1`,
+              this.eText.addText(`+ 1`,
                 wx + (Math.random() - 0.5) * 0.01,
                 wy + (Math.random() - 0.5) * 0.01,
                 this.wallZ + Math.random() * 0.05);

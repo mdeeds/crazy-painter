@@ -29,6 +29,25 @@ AFRAME.registerComponent("go", {
     brush = new Brush(document.querySelector('#player'),
       document.querySelector('#leftHand').object3D,
       document.querySelector('#rightHand').object3D, wall);
+
+    const body = document.querySelector('body');
+    body.addEventListener('keydown', (ev: KeyboardEvent) => {
+      let dy = 0;
+      let dx = 0;
+      let dz = 0;
+      switch (ev.code) {
+        case "KeyI": dy = 0.1; break;
+        case "KeyK": dy = -0.1; break;
+        case "KeyJ": dx = -0.1; break;
+        case "KeyL": dx = 0.1; break;
+        case "KeyU": dz = -0.1; break;
+        case "KeyO": dz = 0.1; break;
+      }
+      const rh = document.querySelector('#rightHand');
+      rh.object3D.position.x += dx;
+      rh.object3D.position.y += dy;
+      rh.object3D.position.z += dz;
+    });
   },
   tick: function (timeMs: number, timeDeltaMs: number) {
     try {
@@ -73,9 +92,9 @@ body.innerHTML = `
   <a-camera id="camera" position="0 1.6 0">
     <a-entity light="type:point; intensity: 0.1; distance: 4; decay: 2" position="0 0.1 -0.1">
   </a-camera>
-  <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly; color: #ffcccc">
+  <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly; color: #aaaaff">
   </a-entity>
-  <a-entity id="rightHand" hand-controls="hand: right; handModelStyle: lowPoly; color: #ffcccc">
+  <a-entity id="rightHand" hand-controls="hand: right; handModelStyle: lowPoly; color: #aaaaff">
   </a-entity>
   </a-entity>
 
