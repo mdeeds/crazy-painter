@@ -39,6 +39,7 @@ class PaintBrush {
     }
     removeSupply(n) {
         this.supply = Math.max(0, this.supply - n);
+        debug_1.Debug.set(`Remaining: ${this.supply}`);
     }
     dip(color) {
         this.color = color;
@@ -77,10 +78,10 @@ class Brush {
             }
             else {
                 const d = this.kBrushRadius - (vec.z - this.wall.wallZ);
-                debug_1.Debug.set(`Partial: ${d.toFixed(3)}`);
                 // c^2 + d^2 = r^2
                 // c = sqrt(r^2 - d^2)
                 const c = Math.sqrt(this.kBrushRadius * this.kBrushRadius - d * d);
+                // Debug.set(`Radius: ${c.toFixed(3)}`);
                 if (c > 0) {
                     this.wall.paint(this.brushPosition, c, brush);
                 }
@@ -720,7 +721,6 @@ class Wall {
         this.kWallWidthMeters = 2;
         this.wallObject = null;
         this.wallPosition = null;
-        debug_1.Debug.set('Wall');
         const scene = document.querySelector('a-scene');
         const wall = document.createElement('a-entity');
         this.wallObject = wall.object3D;

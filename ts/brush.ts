@@ -17,6 +17,7 @@ export class PaintBrush {
 
   public removeSupply(n: number) {
     this.supply = Math.max(0, this.supply - n);
+    Debug.set(`Remaining: ${this.supply}`);
   }
 
   public dip(color: string) {
@@ -59,10 +60,10 @@ export class Brush {
         vec.z = this.wall.wallZ;
       } else {
         const d = this.kBrushRadius - (vec.z - this.wall.wallZ);
-        Debug.set(`Partial: ${d.toFixed(3)}`);
         // c^2 + d^2 = r^2
         // c = sqrt(r^2 - d^2)
         const c = Math.sqrt(this.kBrushRadius * this.kBrushRadius - d * d);
+        // Debug.set(`Radius: ${c.toFixed(3)}`);
         if (c > 0) {
           this.wall.paint(this.brushPosition, c, brush);
         }

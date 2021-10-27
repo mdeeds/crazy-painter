@@ -16,7 +16,6 @@ export class Wall {
   private wallPosition = null;
 
   constructor(private eText: EphemeralText, private score: Score) {
-    Debug.set('Wall');
     const scene = document.querySelector('a-scene');
     const wall = document.createElement('a-entity');
     this.wallObject = wall.object3D;
