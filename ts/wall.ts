@@ -107,7 +107,7 @@ export class Wall {
           if (deltaPoints >= brush.getSupply()) {
             continue;
           }
-          const r2 = (i - ci) * (i - ci) + (j - cj) * (i - cj);
+          const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
           if (r2 < brushRadius * brushRadius) {
             if (this.blocks[i + j * this.kWidth] !== 1) {
               if (Math.random() * 20 > brush.getSupply()) {

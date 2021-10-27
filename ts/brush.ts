@@ -5,11 +5,16 @@ import { Wall } from "./wall";
 export class PaintBrush {
   private kPaintCapacity = 120;
   private color: string;
+  private visibleColor: string;
 
   // Number of squares of paint
   private supply: number;
+  readonly obj: any;
 
-  constructor(readonly obj: any) {
+  constructor(private entity: AFRAME.Entity) {
+    this.obj = entity.object3D;
+    this.entity.setAttribute('color', 'orange');
+    this.visibleColor = 'orange';
     this.dip('orange')
   }
 
@@ -19,11 +24,18 @@ export class PaintBrush {
 
   public removeSupply(n: number) {
     this.supply = Math.max(0, this.supply - n);
-    Debug.set(`Remaining: ${this.supply}`);
+    if (this.supply === 0 && this.visibleColor != '#333') {
+      this.visibleColor = '#333';
+      this.entity.setAttribute('color', this.visibleColor)
+    }
   }
 
   public dip(color: string) {
     this.color = color;
+    if (this.visibleColor != color) {
+      this.visibleColor = color;
+      this.entity.setAttribute('color', this.visibleColor)
+    }
     this.supply = this.kPaintCapacity;
   }
 }
@@ -41,11 +53,15 @@ export class Brush {
     this.leftMinusRight = new AFRAME.THREE.Vector3();
   }
 
+  getBrushes() {
+    return [this.leftBrush, this.rightBrush];
+  }
+
   private makeBrush(container: AFRAME.Entity): PaintBrush {
     const brushEntity = document.createElement('a-sphere');
     brushEntity.setAttribute('radius', this.kBrushRadius);
     container.appendChild(brushEntity);
-    return new PaintBrush(brushEntity.object3D);
+    return new PaintBrush(brushEntity);
   }
 
   private brushPosition = new AFRAME.THREE.Vector3();

@@ -28,11 +28,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Brush = exports.PaintBrush = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
-const debug_1 = __webpack_require__(756);
 class PaintBrush {
-    constructor(obj) {
-        this.obj = obj;
+    constructor(entity) {
+        this.entity = entity;
         this.kPaintCapacity = 120;
+        this.obj = entity.object3D;
+        this.entity.setAttribute('color', 'orange');
+        this.visibleColor = 'orange';
         this.dip('orange');
     }
     getSupply() {
@@ -40,10 +42,17 @@ class PaintBrush {
     }
     removeSupply(n) {
         this.supply = Math.max(0, this.supply - n);
-        debug_1.Debug.set(`Remaining: ${this.supply}`);
+        if (this.supply === 0 && this.visibleColor != '#333') {
+            this.visibleColor = '#333';
+            this.entity.setAttribute('color', this.visibleColor);
+        }
     }
     dip(color) {
         this.color = color;
+        if (this.visibleColor != color) {
+            this.visibleColor = color;
+            this.entity.setAttribute('color', this.visibleColor);
+        }
         this.supply = this.kPaintCapacity;
     }
 }
@@ -59,11 +68,14 @@ class Brush {
         this.rightBrush = this.makeBrush(container);
         this.leftMinusRight = new AFRAME.THREE.Vector3();
     }
+    getBrushes() {
+        return [this.leftBrush, this.rightBrush];
+    }
     makeBrush(container) {
         const brushEntity = document.createElement('a-sphere');
         brushEntity.setAttribute('radius', this.kBrushRadius);
         container.appendChild(brushEntity);
-        return new PaintBrush(brushEntity.object3D);
+        return new PaintBrush(brushEntity);
     }
     clamp(brush) {
         const obj = brush.obj;
@@ -103,6 +115,61 @@ class Brush {
 }
 exports.Brush = Brush;
 //# sourceMappingURL=brush.js.map
+
+/***/ }),
+
+/***/ 223:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Can = void 0;
+const AFRAME = __importStar(__webpack_require__(449));
+class Can {
+    constructor(container, brushes) {
+        this.container = container;
+        this.brushes = brushes;
+        const model = document.createElement('a-cylinder');
+        model.setAttribute('color', 'orange');
+        model.setAttribute('height', '0.25');
+        model.setAttribute('radius', '0.10');
+        model.setAttribute('position', '0 0.125 0');
+        container.appendChild(model);
+        this.canPosition = new AFRAME.THREE.Vector3();
+    }
+    tick(timeMs, timeDeltaMs) {
+        for (const brush of this.brushes) {
+            this.canPosition.copy(this.container.object3D.position);
+            this.canPosition.sub(brush.obj.position);
+            const d = this.canPosition.length();
+            if (d < 0.2) {
+                brush.dip('orange');
+            }
+        }
+    }
+}
+exports.Can = Can;
+//# sourceMappingURL=can.js.map
 
 /***/ }),
 
@@ -469,6 +536,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const AFRAME = __importStar(__webpack_require__(449));
 const brush_1 = __webpack_require__(556);
+const can_1 = __webpack_require__(223);
 const debug_1 = __webpack_require__(756);
 const ephemeralText_1 = __webpack_require__(283);
 const gait_1 = __webpack_require__(232);
@@ -479,11 +547,13 @@ var wall = null;
 var gait = null;
 var eText = null;
 var score;
+var cans = [];
 AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
+            const scene = document.querySelector('a-scene');
             debug_1.Debug.init();
-            eText = new ephemeralText_1.EphemeralText(document.querySelector('a-scene'));
+            eText = new ephemeralText_1.EphemeralText(scene);
             eText.addText("Let's go!", 0, 1.5, -0.6);
             score = new score_1.Score(document.querySelector('#score'));
             wall = new wall_1.Wall(eText, score);
@@ -493,6 +563,41 @@ AFRAME.registerComponent("go", {
             gait.addFoot(document.querySelector('#foot_rf'));
             gait.addFoot(document.querySelector('#foot_rh'));
             brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall);
+            const canEntity = document.createElement('a-entity');
+            canEntity.setAttribute('position', '-0.5 0 -0.2');
+            scene.appendChild(canEntity);
+            const can = new can_1.Can(canEntity, brush.getBrushes());
+            cans.push(can);
+            const body = document.querySelector('body');
+            body.addEventListener('keydown', (ev) => {
+                let dy = 0;
+                let dx = 0;
+                let dz = 0;
+                switch (ev.code) {
+                    case "KeyI":
+                        dy = 0.1;
+                        break;
+                    case "KeyK":
+                        dy = -0.1;
+                        break;
+                    case "KeyJ":
+                        dx = -0.1;
+                        break;
+                    case "KeyL":
+                        dx = 0.1;
+                        break;
+                    case "KeyU":
+                        dz = -0.1;
+                        break;
+                    case "KeyO":
+                        dz = 0.1;
+                        break;
+                }
+                const rh = document.querySelector('#rightHand');
+                rh.object3D.position.x += dx;
+                rh.object3D.position.y += dy;
+                rh.object3D.position.z += dz;
+            });
         });
     },
     tick: function (timeMs, timeDeltaMs) {
@@ -505,6 +610,9 @@ AFRAME.registerComponent("go", {
             }
             if (eText != null) {
                 eText.tick(timeMs, timeDeltaMs);
+            }
+            for (const can of cans) {
+                can.tick(timeMs, timeDeltaMs);
             }
         }
         catch (e) {
@@ -538,9 +646,9 @@ body.innerHTML = `
   <a-camera id="camera" position="0 1.6 0">
     <a-entity light="type:point; intensity: 0.1; distance: 4; decay: 2" position="0 0.1 -0.1">
   </a-camera>
-  <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly; color: #ffcccc">
+  <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly; color: #aaaaff">
   </a-entity>
-  <a-entity id="rightHand" hand-controls="hand: right; handModelStyle: lowPoly; color: #ffcccc">
+  <a-entity id="rightHand" hand-controls="hand: right; handModelStyle: lowPoly; color: #aaaaff">
   </a-entity>
   </a-entity>
 
@@ -801,16 +909,16 @@ class Wall {
                     if (deltaPoints >= brush.getSupply()) {
                         continue;
                     }
-                    const r2 = (i - ci) * (i - ci) + (j - cj) * (i - cj);
+                    const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
                     if (r2 < brushRadius * brushRadius) {
                         if (this.blocks[i + j * this.kWidth] !== 1) {
-                            if (Math.random() * 20 < brush.getSupply()) {
+                            if (Math.random() * 20 > brush.getSupply()) {
                                 continue;
                             }
                             this.blocks[i + j * this.kWidth] = 1;
                             const wx = this.worldXForI(i);
                             const wy = this.worldYForJ(j);
-                            this.eText.addText(`+1`, wx + (Math.random() - 0.5) * 0.01, wy + (Math.random() - 0.5) * 0.01, this.wallZ + Math.random() * 0.05);
+                            this.eText.addText(`+ 1`, wx + (Math.random() - 0.5) * 0.01, wy + (Math.random() - 0.5) * 0.01, this.wallZ + Math.random() * 0.05);
                             ++deltaPoints;
                             hasChanges = true;
                         }

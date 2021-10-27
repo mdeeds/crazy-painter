@@ -1,5 +1,6 @@
 import * as AFRAME from "aframe";
 import { Brush } from "./brush";
+import { Can } from "./can";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
 import { Gait } from "./gait";
@@ -11,11 +12,13 @@ var wall: Wall = null;
 var gait: Gait = null;
 var eText: EphemeralText = null;
 var score: Score;
+var cans: Can[] = [];
 
 AFRAME.registerComponent("go", {
   init: async function () {
+    const scene = document.querySelector('a-scene');
     Debug.init();
-    eText = new EphemeralText(document.querySelector('a-scene'));
+    eText = new EphemeralText(scene);
     eText.addText("Let's go!", 0, 1.5, -0.6);
     score = new Score(document.querySelector('#score'));
 
@@ -29,6 +32,12 @@ AFRAME.registerComponent("go", {
     brush = new Brush(document.querySelector('#player'),
       document.querySelector('#leftHand').object3D,
       document.querySelector('#rightHand').object3D, wall);
+
+    const canEntity = document.createElement('a-entity');
+    canEntity.setAttribute('position', '-0.5 0 -0.2');
+    scene.appendChild(canEntity);
+    const can = new Can(canEntity, brush.getBrushes())
+    cans.push(can);
 
     const body = document.querySelector('body');
     body.addEventListener('keydown', (ev: KeyboardEvent) => {
@@ -59,6 +68,9 @@ AFRAME.registerComponent("go", {
       }
       if (eText != null) {
         eText.tick(timeMs, timeDeltaMs);
+      }
+      for (const can of cans) {
+        can.tick(timeMs, timeDeltaMs);
       }
     } catch (e) {
       Debug.set(`Tick error: ${e}`);
