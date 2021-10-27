@@ -33,6 +33,7 @@ class PaintBrush {
     constructor(obj) {
         this.obj = obj;
         this.kPaintCapacity = 120;
+        this.dip('orange');
     }
     getSupply() {
         return this.supply;

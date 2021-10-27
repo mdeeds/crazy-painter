@@ -9,7 +9,9 @@ export class PaintBrush {
   // Number of squares of paint
   private supply: number;
 
-  constructor(readonly obj: any) { }
+  constructor(readonly obj: any) {
+    this.dip('orange')
+  }
 
   public getSupply() {
     return this.supply;
