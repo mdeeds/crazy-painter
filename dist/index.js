@@ -28,12 +28,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Brush = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
+const debug_1 = __webpack_require__(756);
 class Brush {
     constructor(container, leftHand, rightHand, wall) {
         this.leftHand = leftHand;
         this.rightHand = rightHand;
         this.wall = wall;
-        this.kBrushRadius = 0.2;
+        this.kBrushRadius = 0.1;
         this.brushPosition = new AFRAME.THREE.Vector3();
         this.leftBrush = this.makeBrush(container);
         this.rightBrush = this.makeBrush(container);
@@ -50,11 +51,22 @@ class Brush {
         if (vec.y < 0) {
             vec.y = 0;
         }
-        if (vec.z < this.wall.wallZ) {
-            vec.z = this.wall.wallZ;
+        if (vec.z - this.kBrushRadius < this.wall.wallZ) {
             obj.getWorldPosition(this.brushPosition);
-            // TODO: Handle light touch.
-            this.wall.paint(this.brushPosition, this.kBrushRadius);
+            if (vec.z < this.wall.wallZ) {
+                this.wall.paint(this.brushPosition, this.kBrushRadius);
+                vec.z = this.wall.wallZ;
+            }
+            else {
+                const d = this.kBrushRadius - (vec.z - this.wall.wallZ);
+                debug_1.Debug.set(`Partial: ${d.toFixed(3)}`);
+                // c^2 + d^2 = r^2
+                // c = sqrt(r^2 - d^2)
+                const c = Math.sqrt(this.kBrushRadius * this.kBrushRadius - d * d);
+                if (c > 0) {
+                    this.wall.paint(this.brushPosition, c);
+                }
+            }
         }
     }
     tick(timeMs, timeDeltaMs) {
@@ -146,7 +158,7 @@ class EphemeralText {
     constructor(scene) {
         this.scene = scene;
         this.textItems = [];
-        this.kCapacity = 12;
+        this.kCapacity = 100;
         this.nextSlot = 0;
         for (let i = 0; i < this.kCapacity; ++i) {
             this.textItems.push(new TextBlurb(scene));
@@ -440,18 +452,21 @@ const brush_1 = __webpack_require__(556);
 const debug_1 = __webpack_require__(756);
 const ephemeralText_1 = __webpack_require__(283);
 const gait_1 = __webpack_require__(232);
+const score_1 = __webpack_require__(537);
 const wall_1 = __webpack_require__(649);
 var brush = null;
 var wall = null;
 var gait = null;
 var eText = null;
+var score;
 AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
             debug_1.Debug.init();
             eText = new ephemeralText_1.EphemeralText(document.querySelector('a-scene'));
             eText.addText("Let's go!", 0, 1.5, -0.6);
-            wall = new wall_1.Wall(eText);
+            score = new score_1.Score(document.querySelector('#score'));
+            wall = new wall_1.Wall(eText, score);
             gait = new gait_1.Gait(gait_1.Gait.walkingGait, document.querySelector('#body'), wall);
             gait.addFoot(document.querySelector('#foot_lh'));
             gait.addFoot(document.querySelector('#foot_lf'));
@@ -498,6 +513,7 @@ body.innerHTML = `
     </a-box>
     </a-entity>
 </a-entity>
+<a-entity id=score position='0 2.4 -0.8'></a-entity>
 <a-entity id='player'>
   <a-camera id="camera" position="0 1.6 0">
     <a-entity light="type:point; intensity: 0.1; distance: 4; decay: 2" position="0 0.1 -0.1">
@@ -640,6 +656,31 @@ exports.PWLL = PWLL;
 
 /***/ }),
 
+/***/ 537:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Score = void 0;
+class Score {
+    constructor(container) {
+        this.score = 0;
+        this.display = null;
+        this.display = document.createElement('a-entity');
+        container.appendChild(this.display);
+        this.add(0);
+    }
+    add(delta) {
+        this.score += delta;
+        this.display.setAttribute('text', `value: ${this.score.toFixed(0)}; align: center; wrap-count: 8; width: 0.2`);
+    }
+}
+exports.Score = Score;
+//# sourceMappingURL=score.js.map
+
+/***/ }),
+
 /***/ 649:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
@@ -649,8 +690,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Wall = void 0;
 const debug_1 = __webpack_require__(756);
 class Wall {
-    constructor(eText) {
+    constructor(eText, score) {
         this.eText = eText;
+        this.score = score;
         this.canvas = null;
         this.wallTex = null;
         this.blocks = [];
@@ -727,6 +769,7 @@ class Wall {
             const cj = (this.kWidth * brushPosition.y) - 0.5;
             const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
             let hasChanges = false;
+            let deltaPoints = 0;
             for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
                 for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
                     const r2 = (i - ci) * (i - ci) + (j - cj) * (i - cj);
@@ -736,6 +779,7 @@ class Wall {
                             const wy = this.worldYForJ(j);
                             this.blocks[i + j * this.kWidth] = 1;
                             this.eText.addText(`+1`, wx, wy, this.wallZ + 0.02);
+                            ++deltaPoints;
                             hasChanges = true;
                         }
                     }
@@ -743,6 +787,7 @@ class Wall {
             }
             if (hasChanges) {
                 this.updateCanvas();
+                this.score.add(deltaPoints);
             }
         }
         catch (e) {

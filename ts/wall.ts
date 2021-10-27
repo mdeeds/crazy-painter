@@ -1,5 +1,6 @@
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
+import { Score } from "./score";
 
 export class Wall {
   private canvas: HTMLCanvasElement = null;
@@ -13,7 +14,7 @@ export class Wall {
   private readonly wallObject = null;
   private wallPosition = null;
 
-  constructor(private eText: EphemeralText) {
+  constructor(private eText: EphemeralText, private score: Score) {
     Debug.set('Wall');
     const scene = document.querySelector('a-scene');
     const wall = document.createElement('a-entity');
@@ -94,6 +95,7 @@ export class Wall {
       const cj = (this.kWidth * brushPosition.y) - 0.5;
       const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
       let hasChanges = false;
+      let deltaPoints = 0;
       for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
         for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
           const r2 = (i - ci) * (i - ci) + (j - cj) * (i - cj);
@@ -103,6 +105,7 @@ export class Wall {
               const wy = this.worldYForJ(j);
               this.blocks[i + j * this.kWidth] = 1;
               this.eText.addText(`+1`, wx, wy, this.wallZ + 0.02);
+              ++deltaPoints;
               hasChanges = true;
             }
           }
@@ -110,6 +113,7 @@ export class Wall {
       }
       if (hasChanges) {
         this.updateCanvas();
+        this.score.add(deltaPoints);
       }
     } catch (e) {
       Debug.set(`error: ${e}`);

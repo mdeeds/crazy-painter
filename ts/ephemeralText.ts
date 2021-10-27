@@ -41,7 +41,7 @@ class TextBlurb {
 
 export class EphemeralText {
   private textItems: TextBlurb[] = [];
-  private kCapacity: number = 12;
+  private kCapacity: number = 100;
   private nextSlot = 0;
   constructor(private scene: AFRAME.Entity) {
     for (let i = 0; i < this.kCapacity; ++i) {

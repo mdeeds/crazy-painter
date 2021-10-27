@@ -3,19 +3,23 @@ import { Brush } from "./brush";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
 import { Gait } from "./gait";
+import { Score } from "./score";
 import { Wall } from "./wall";
 
 var brush = null;
 var wall: Wall = null;
 var gait: Gait = null;
 var eText: EphemeralText = null;
+var score: Score;
 
 AFRAME.registerComponent("go", {
   init: async function () {
     Debug.init();
     eText = new EphemeralText(document.querySelector('a-scene'));
     eText.addText("Let's go!", 0, 1.5, -0.6);
-    wall = new Wall(eText);
+    score = new Score(document.querySelector('#score'));
+
+    wall = new Wall(eText, score);
     gait = new Gait(Gait.walkingGait, document.querySelector('#body'), wall);
     gait.addFoot(document.querySelector('#foot_lh'));
     gait.addFoot(document.querySelector('#foot_lf'));
@@ -64,6 +68,7 @@ body.innerHTML = `
     </a-box>
     </a-entity>
 </a-entity>
+<a-entity id=score position='0 2.4 -0.8'></a-entity>
 <a-entity id='player'>
   <a-camera id="camera" position="0 1.6 0">
     <a-entity light="type:point; intensity: 0.1; distance: 4; decay: 2" position="0 0.1 -0.1">

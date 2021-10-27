@@ -1,11 +1,12 @@
 import * as AFRAME from "aframe";
+import { Debug } from "./debug";
 import { Wall } from "./wall";
 
 export class Brush {
   private leftBrush: any;
   private rightBrush: any;
   private leftMinusRight: any;
-  private readonly kBrushRadius = 0.2;
+  private readonly kBrushRadius = 0.1;
 
   constructor(container: AFRAME.Entity, private leftHand, private rightHand,
     private wall: Wall) {
@@ -27,12 +28,24 @@ export class Brush {
     if (vec.y < 0) {
       vec.y = 0;
     }
-    if (vec.z < this.wall.wallZ) {
-      vec.z = this.wall.wallZ;
+    if (vec.z - this.kBrushRadius < this.wall.wallZ) {
       obj.getWorldPosition(this.brushPosition);
-      // TODO: Handle light touch.
-      this.wall.paint(this.brushPosition, this.kBrushRadius);
+      if (vec.z < this.wall.wallZ) {
+        this.wall.paint(this.brushPosition, this.kBrushRadius);
+        vec.z = this.wall.wallZ;
+      } else {
+        const d = this.kBrushRadius - (vec.z - this.wall.wallZ);
+        Debug.set(`Partial: ${d.toFixed(3)}`);
+        // c^2 + d^2 = r^2
+        // c = sqrt(r^2 - d^2)
+        const c = Math.sqrt(this.kBrushRadius * this.kBrushRadius - d * d);
+        if (c > 0) {
+          this.wall.paint(this.brushPosition, c);
+        }
+
+      }
     }
+
   }
 
   tick(timeMs: number, timeDeltaMs: number) {
