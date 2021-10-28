@@ -1,11 +1,48 @@
 import * as AFRAME from "aframe";
+import { AssetLibrary } from "./assetLibrary";
 import { PaintBrush } from "./brush";
 
 export class Can {
   private canPosition: any;
   constructor(private container: AFRAME.Entity,
-    private brushes: PaintBrush[]) {
+    private brushes: PaintBrush[], private assetLibrary: AssetLibrary) {
 
+    container.appendChild(this.buildMaterialCan());
+
+    this.canPosition = new AFRAME.THREE.Vector3();
+  }
+
+  private buildMaterialCan(): AFRAME.Entity {
+    const model = document.createElement('a-entity');
+    model.setAttribute('obj-model',
+      `obj:#${this.assetLibrary.getId('obj/bucket.obj')};` +
+      `mtl:#${this.assetLibrary.getId('obj/bucket.mtl')}`);
+    model.setAttribute('scale', '0.1 0.1 0.1');
+    model.setAttribute('position', '0 0.125 0');
+
+
+    model.addEventListener('model-loaded', () => {
+      // Grab the mesh / scene.
+      const obj = model.getObject3D('mesh');
+      // Go over the submeshes and modify materials we want.
+      obj.traverse(node => {
+        if (node.material && node.material.color) {
+          node.material.color.set('#840');
+          if (node.material.name === 'Neon') {
+            node.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#f80' });
+            // node.material.emissive.set('orange');
+            // This will cause it to crash :-/
+            // node.material.type = 'MeshBasicMaterial';
+          }
+          console.log(node.material);
+        }
+      });
+    });
+
+    return model;
+  }
+
+  private buildTwoToneCan(): AFRAME.Entity {
     const model = document.createElement('a-entity');
     const dark = document.createElement('a-entity');
     dark.setAttribute('obj-model', `obj: obj/bucket-dark.obj`);
@@ -22,8 +59,7 @@ export class Can {
     // model.setAttribute('height', '0.25');
     // model.setAttribute('radius', '0.10');
     model.setAttribute('position', '0 0.125 0');
-    container.appendChild(model);
-    this.canPosition = new AFRAME.THREE.Vector3();
+    return model;
   }
 
   tick(timeMs: number, timeDeltaMs: number) {

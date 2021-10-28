@@ -1,6 +1,52 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 673:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AssetLibrary = void 0;
+class AssetLibrary {
+    constructor(assetCollection) {
+        this.assetCollection = assetCollection;
+        this.idMap = new Map();
+    }
+    addImage(url) {
+        const img = document.createElement('img');
+        img.setAttribute('src', url);
+        img.id = `asset${this.idMap.size}`;
+        this.assetCollection.appendChild(img);
+        this.idMap.set(url, img.id);
+        return img.id;
+    }
+    addItem(url) {
+        // <a-asset-item id="horse-obj" src="horse.obj"></a-asset-item>
+        // <a-asset-item id="horse-mtl" src="horse.mtl"></a-asset-item>
+        const item = document.createElement('a-asset-item');
+        item.setAttribute('src', url);
+        item.id = `asset${this.idMap.size}`;
+        this.assetCollection.appendChild(item);
+        this.idMap.set(url, item.id);
+        return item.id;
+    }
+    getId(url) {
+        if (this.idMap.has(url)) {
+            return this.idMap.get(url);
+        }
+        if (url.toLowerCase().endsWith('.obj') ||
+            url.toLocaleLowerCase().endsWith('.mtl')) {
+            return this.addItem(url);
+        }
+        return this.addImage(url);
+    }
+}
+exports.AssetLibrary = AssetLibrary;
+//# sourceMappingURL=assetLibrary.js.map
+
+/***/ }),
+
 /***/ 556:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -33,9 +79,9 @@ class PaintBrush {
         this.entity = entity;
         this.kPaintCapacity = 120;
         this.obj = entity.object3D;
-        this.entity.setAttribute('color', 'orange');
-        this.visibleColor = 'orange';
-        this.dip('orange');
+        this.entity.setAttribute('color', '#f80');
+        this.visibleColor = '#f80';
+        this.dip('#f80');
     }
     getSupply() {
         return this.supply;
@@ -146,9 +192,39 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Can = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 class Can {
-    constructor(container, brushes) {
+    constructor(container, brushes, assetLibrary) {
         this.container = container;
         this.brushes = brushes;
+        this.assetLibrary = assetLibrary;
+        container.appendChild(this.buildMaterialCan());
+        this.canPosition = new AFRAME.THREE.Vector3();
+    }
+    buildMaterialCan() {
+        const model = document.createElement('a-entity');
+        model.setAttribute('obj-model', `obj:#${this.assetLibrary.getId('obj/bucket.obj')};` +
+            `mtl:#${this.assetLibrary.getId('obj/bucket.mtl')}`);
+        model.setAttribute('scale', '0.1 0.1 0.1');
+        model.setAttribute('position', '0 0.125 0');
+        model.addEventListener('model-loaded', () => {
+            // Grab the mesh / scene.
+            const obj = model.getObject3D('mesh');
+            // Go over the submeshes and modify materials we want.
+            obj.traverse(node => {
+                if (node.material && node.material.color) {
+                    node.material.color.set('#840');
+                    if (node.material.name === 'Neon') {
+                        node.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#f80' });
+                        // node.material.emissive.set('orange');
+                        // This will cause it to crash :-/
+                        // node.material.type = 'MeshBasicMaterial';
+                    }
+                    console.log(node.material);
+                }
+            });
+        });
+        return model;
+    }
+    buildTwoToneCan() {
         const model = document.createElement('a-entity');
         const dark = document.createElement('a-entity');
         dark.setAttribute('obj-model', `obj: obj/bucket-dark.obj`);
@@ -163,8 +239,7 @@ class Can {
         // model.setAttribute('height', '0.25');
         // model.setAttribute('radius', '0.10');
         model.setAttribute('position', '0 0.125 0');
-        container.appendChild(model);
-        this.canPosition = new AFRAME.THREE.Vector3();
+        return model;
     }
     tick(timeMs, timeDeltaMs) {
         for (const brush of this.brushes) {
@@ -277,238 +352,6 @@ exports.EphemeralText = EphemeralText;
 
 /***/ }),
 
-/***/ 518:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Feet = void 0;
-class Feet {
-    // `gaitM` : Distance traveled in one cycle of the gait.
-    // `gaitMS` : Duration of the gait in milliseconds
-    constructor(gaitM, gaitMS, body) {
-        this.gaitM = gaitM;
-        this.gaitMS = gaitMS;
-        this.body = body;
-        this.feet = [];
-    }
-    add(foot) {
-        this.feet.push(foot);
-    }
-    setPositions(timeMs) {
-        const p = (timeMs / this.gaitMS) % 1; // percentage of 800ms
-        for (const foot of this.feet) {
-            foot.setPosition(p, this.gaitM);
-        }
-        const seconds = ((timeMs % 3000) - 1500) / 1000;
-        const mps = this.gaitM / (this.gaitMS / 1000);
-        this.body.object3D.position.x = -mps * seconds;
-    }
-}
-exports.Feet = Feet;
-//# sourceMappingURL=feet.js.map
-
-/***/ }),
-
-/***/ 410:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Foot = void 0;
-const AFRAME = __importStar(__webpack_require__(449));
-class Foot {
-    constructor(pod, foot) {
-        this.pod = pod;
-        this.foot = foot;
-        this.initialPosition = new AFRAME.THREE.Vector3();
-        this.initialPosition.copy(foot.object3D.position);
-    }
-    setPosition(p, gaitM) {
-        const [x, dx] = this.pod.getXdX(p);
-        this.foot.object3D.position.copy(this.initialPosition);
-        this.foot.object3D.position.x += x * gaitM;
-        if (dx < 0) {
-            this.foot.object3D.position.y += Foot.kLift;
-        }
-    }
-}
-exports.Foot = Foot;
-Foot.kLift = 0.02;
-//# sourceMappingURL=foot.js.map
-
-/***/ }),
-
-/***/ 232:
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Gait = void 0;
-const feet_1 = __webpack_require__(518);
-const foot_1 = __webpack_require__(410);
-const pod_1 = __webpack_require__(629);
-class Gait {
-    constructor(gaitDescriptor, body, wall) {
-        this.gaitDescriptor = gaitDescriptor;
-        this.wall = wall;
-        this.footEntities = [];
-        this.feet = new feet_1.Feet(0.12, 600, body);
-        // body.object3D.position.z = wall.wallZ;
-    }
-    addFoot(entity) {
-        this.footEntities.push(entity);
-        const i = this.footEntities.length % this.gaitDescriptor.length;
-        this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[i]), entity));
-    }
-    setPositions(timeMs) {
-        this.feet.setPositions(timeMs);
-    }
-}
-exports.Gait = Gait;
-Gait.walkingGait = [[9, 7], [1, 7, 8]];
-;
-// function scamper() {
-//   // #########.......
-//   // #.......########
-//   // .#########......
-//   // .......#########  
-//   feet = new Feet(0.30, 600, document.querySelector('#body'));
-//   feet.add(new Foot(
-//     new Pod([9, 7]), document.querySelector('#foot1')));
-//   feet.add(new Foot(
-//     new Pod([1, 7, 8]), document.querySelector('#foot2')));
-//   feet.add(new Foot(
-//     new Pod([0, 9, 6]), document.querySelector('#foot3')));
-//   feet.add(new Foot(
-//     new Pod([0, 7, 9]), document.querySelector('#foot4')));
-// }
-// function stomp() {
-//   // ####.#####
-//   // #########.
-//   feet = new Feet(0.30, 600, document.querySelector('#body'));
-//   feet.add(new Foot(
-//     new Pod([4, 1, 5]), document.querySelector('#foot1')));
-//   feet.add(new Foot(
-//     new Pod([9, 1]), document.querySelector('#foot2')));
-//   feet.add(new Foot(
-//     new Pod([4, 1, 5]), document.querySelector('#foot3')));
-//   feet.add(new Foot(
-//     new Pod([9, 1]), document.querySelector('#foot4')));
-// }
-// function frogWalk() {
-//   // ####.#####
-//   // .#######..
-//   feet = new Feet(0.30, 600, document.querySelector('#body'));
-//   feet.add(new Foot(
-//     new Pod([4, 1, 5]), document.querySelector('#foot1')));
-//   feet.add(new Foot(
-//     new Pod([0, 1, 7, 2]), document.querySelector('#foot2')));
-//   feet.add(new Foot(
-//     new Pod([9, 1]), document.querySelector('#foot3')));
-//   feet.add(new Foot(
-//     new Pod([4, 1, 5]), document.querySelector('#foot4')));
-// }
-// // function run() {
-// //   // ##....
-// //   // ...##.
-// //   feet.push(new Foot(
-// //     new Pod([2, 4]), document.querySelector('#foot1')));
-// //   feet.push(new Foot(
-// //     new Pod([0, 3, 2, 1]), document.querySelector('#foot2')));
-// // }
-// // function skip() {
-// //   // ##....
-// //   // .##...
-// //   feet.push(new Foot(
-// //     new Pod([2, 4]), document.querySelector('#foot1')));
-// //   feet.push(new Foot(
-// //     new Pod([0, 1, 2, 3]), document.querySelector('#foot2')));
-// // }
-// // function amble() {
-// //   // ##..
-// //   // .##.
-// //   // #..#
-// //   // ..##
-// //   feet.push(new Foot(
-// //     new Pod([2, 2]), document.querySelector('#foot1')));
-// //   feet.push(new Foot(
-// //     new Pod([0, 1, 2, 1]), document.querySelector('#foot2')));
-// //   feet.push(new Foot(
-// //     new Pod([1, 2, 1]), document.querySelector('#foot3')));
-// //   feet.push(new Foot(
-// //     new Pod([0, 2, 2]), document.querySelector('#foot4')));
-// // }
-// function lizardTrot() {
-//   feet = new Feet(0.15, 600, document.querySelector('#body'));
-//   // https://www.researchgate.net/figure/Hildebrand-style-gait-diagrams-A-and-B-and-axial-skeleton-displacement-patterns-C-and_fig3_236460049
-//   // LH ###########.........
-//   // LF ##........##########
-//   // RF ###########........#
-//   // RH .........###########
-//   feet.add(new Foot(
-//     new Pod([11, 9]), document.querySelector('#foot1')));
-//   feet.add(new Foot(
-//     new Pod([2, 9, 9]), document.querySelector('#foot2')));
-//   feet.add(new Foot(
-//     new Pod([11, 8, 1]), document.querySelector('#foot3')));
-//   feet.add(new Foot(
-//     new Pod([0, 9, 11]), document.querySelector('#foot4')));
-// }
-// function trot() {
-//   // ##..
-//   // ..##
-//   // ..##
-//   // ##..
-//   feet.push(new Foot(
-//     new Pod([2, 2]), document.querySelector('#foot1')));
-//   feet.push(new Foot(
-//     new Pod([0, 2, 2]), document.querySelector('#foot2')));
-//   feet.push(new Foot(
-//     new Pod([0, 2, 2]), document.querySelector('#foot3')));
-//   feet.push(new Foot(
-//     new Pod([2, 2]), document.querySelector('#foot4')));
-// }
-// function bound() {
-//   // ...#
-//   // ...#
-//   // ###.
-//   // ###.
-//   feet.push(new Foot(
-//     new Pod([0, 3, 1]), document.querySelector('#foot1')));
-//   feet.push(new Foot(
-//     new Pod([0, 3, 1]), document.querySelector('#foot2')));
-//   feet.push(new Foot(
-//     new Pod([3, 1]), document.querySelector('#foot3')));
-//   feet.push(new Foot(
-//     new Pod([3, 1]), document.querySelector('#foot4')));
-// }
-//# sourceMappingURL=gait.js.map
-
-/***/ }),
-
 /***/ 138:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -548,12 +391,12 @@ const brush_1 = __webpack_require__(556);
 const can_1 = __webpack_require__(223);
 const debug_1 = __webpack_require__(756);
 const ephemeralText_1 = __webpack_require__(283);
-const gait_1 = __webpack_require__(232);
 const score_1 = __webpack_require__(537);
 const wall_1 = __webpack_require__(649);
+const assetLibrary_1 = __webpack_require__(673);
 var brush = null;
 var wall = null;
-var gait = null;
+var critter = null;
 var eText = null;
 var score;
 var cans = [];
@@ -566,16 +409,12 @@ AFRAME.registerComponent("go", {
             eText.addText("Let's go!", 0, 1.5, -0.6);
             score = new score_1.Score(document.querySelector('#score'));
             wall = new wall_1.Wall(eText, score);
-            gait = new gait_1.Gait(gait_1.Gait.walkingGait, document.querySelector('#body'), wall);
-            gait.addFoot(document.querySelector('#foot_lh'));
-            gait.addFoot(document.querySelector('#foot_lf'));
-            gait.addFoot(document.querySelector('#foot_rf'));
-            gait.addFoot(document.querySelector('#foot_rh'));
             brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall);
             const canEntity = document.createElement('a-entity');
             canEntity.setAttribute('position', '-0.5 0 -0.2');
             scene.appendChild(canEntity);
-            const can = new can_1.Can(canEntity, brush.getBrushes());
+            const assetLibrary = new assetLibrary_1.AssetLibrary(document.querySelector('a-assets'));
+            const can = new can_1.Can(canEntity, brush.getBrushes(), assetLibrary);
             cans.push(can);
             const body = document.querySelector('body');
             body.addEventListener('keydown', (ev) => {
@@ -611,8 +450,8 @@ AFRAME.registerComponent("go", {
     },
     tick: function (timeMs, timeDeltaMs) {
         try {
-            if (gait != null) {
-                gait.setPositions(timeMs);
+            if (critter != null) {
+                critter.setPositions(timeMs);
             }
             if (brush != null) {
                 brush.tick(timeMs, timeDeltaMs);
@@ -634,23 +473,19 @@ body.innerHTML = `
 <a-scene go="1" 
   fog="type: linear; color: #112; near: 20; far: 300"
   background="black" transparent="false" cursor="rayOrigin: mouse" stats>
-  <a-assets>
-  </a-assets>
+  <a-assets></a-assets>
 
 <a-sky color="#112" radius=3000></a-sky>
 <a-entity light="type: ambient; color: #222"></a-entity>
 <a-entity light="type:directional; color: #777" position="1800 5000 1200"></a-entity>
 <a-entity id='world'>
-  <a-entity id='dog' rotation='90 0 0' position='0 2 -0.8'>
-    <a-box id='body' width=0.2 depth=0.08 height=0.01 position="0 0.02 0" >
-      <a-cylinder id='foot_lh' height=0.01 radius=0.01 position= "0.07 -0.02  0.08" ></a-cylinder>
-      <a-cylinder id='foot_lf' height=0.01 radius=0.01 position="-0.07 -0.02  0.08" ></a-cylinder>
-      <a-cylinder id='foot_rf' height=0.01 radius=0.01 position="-0.07 -0.02 -0.08" ></a-cylinder>
-      <a-cylinder id='foot_rh' height=0.01 radius=0.01 position= "0.07 -0.02 -0.08" ></a-cylinder>
-    </a-box>
-    </a-entity>
 </a-entity>
 <a-entity id=score position='0 2.4 -0.8'></a-entity>
+<a-box width=20 height=0.2 depth=0.03 position='0 0.1 -0.6'></a-box> 
+<a-box width=20 height=0.2 depth=0.03 position='0 2.5 -0.6'></a-box> 
+<a-box width=9 height=2.2 depth=0.03 position='-5.5 1.3 -0.6'></a-box> 
+<a-box width=9 height=2.2 depth=0.03 position=' 5.5 1.3 -0.6'></a-box> 
+
 <a-entity id='player'>
   <a-camera id="camera" position="0 1.6 0">
     <a-entity light="type:point; intensity: 0.1; distance: 4; decay: 2" position="0 0.1 -0.1">
@@ -664,128 +499,6 @@ body.innerHTML = `
 </a-scene>
 `;
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ 629:
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Pod = void 0;
-const pwll_1 = __webpack_require__(251);
-class Pod {
-    // #####---  :  [5, 3]
-    // #---####  :  [1, 3, 4]
-    // ####---#  :  [4, 3, 1]
-    // ---#####  :  [0, 3, 5]  // 0 = foot starts up
-    constructor(pattern) {
-        this.pattern = pattern;
-        let down = true;
-        if (pattern[0] == 0) {
-            down = false;
-            pattern.shift();
-        }
-        const totalLength = pattern.reduce((a, b) => a + b, 0);
-        let cumulativeLength = 0;
-        this.position = new pwll_1.PWLL();
-        if (pattern.length % 2 === 1 && down) {
-            // Odd pattern, so first and last need to be merged.
-            const len = pattern[0] + pattern[pattern.length - 1];
-            const pEnd = pattern[0] / totalLength;
-            const pStart = 1 - (pattern[pattern.length - 1] / totalLength);
-            this.position.add(new pwll_1.Motion(pStart, -len / 2 / totalLength));
-            this.position.add(new pwll_1.Motion(pEnd, len / 2 / totalLength));
-            pattern.shift();
-            pattern.pop();
-            down = false;
-        }
-        for (let i = 0; i < pattern.length; ++i) {
-            const len = pattern[i];
-            const p = cumulativeLength / totalLength;
-            if (down) {
-                this.position.add(new pwll_1.Motion(p, -len / 2 / totalLength));
-                let x = len / totalLength;
-                this.position.add(new pwll_1.Motion(p + x, len / 2 / totalLength));
-            }
-            down = !down;
-            cumulativeLength += len;
-        }
-    }
-    getXdX(p) {
-        return this.position.getXdX(p);
-    }
-}
-exports.Pod = Pod;
-//# sourceMappingURL=pod.js.map
-
-/***/ }),
-
-/***/ 251:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.PWLL = exports.Motion = void 0;
-class Motion {
-    constructor(p, x) {
-        this.p = p;
-        this.x = x;
-    }
-}
-exports.Motion = Motion;
-/**
- * A PWLL is a PieceWise Linear Loop.  It's a piecewise function
- * defined over the interval [0, 1] where the last control point "loops"
- * back around to the first.
- */
-class PWLL {
-    constructor() {
-        this.controlPoints = [];
-        this.firstP = 0;
-        this.lastP = 0;
-    }
-    add(m) {
-        this.controlPoints.push(m);
-        this.controlPoints.sort((a, b) => a.p - b.p);
-        this.lastP = this.controlPoints[this.controlPoints.length - 1].p;
-        this.firstP = this.controlPoints[0].p;
-    }
-    getXdX(p) {
-        let q = 0;
-        let len = 0;
-        let i = 0;
-        let j = 0;
-        if (p > this.lastP) {
-            q = (p - this.lastP);
-            len = 1 - this.lastP + this.firstP;
-            i = this.controlPoints.length - 1;
-            j = 0;
-        }
-        else if (p < this.firstP) {
-            q = (1 - this.lastP) + p;
-            len = 1 - this.lastP + this.firstP;
-            i = this.controlPoints.length - 1;
-            j = 0;
-        }
-        else {
-            while (p < this.controlPoints[i].p) {
-                ++i;
-            }
-            j = i + 1;
-            q = p - this.controlPoints[i].p;
-            len = this.controlPoints[j].p - this.controlPoints[i].p;
-        }
-        const x = (q / len) * this.controlPoints[j].x
-            + (1 - q / len) * this.controlPoints[i].x;
-        const dx = (this.controlPoints[j].x - this.controlPoints[i].x) / len;
-        return [x, dx];
-    }
-}
-exports.PWLL = PWLL;
-//# sourceMappingURL=pwll.js.map
 
 /***/ }),
 
@@ -855,8 +568,8 @@ class Wall {
         for (let i = 0; i < this.kWidth * this.kWidth; ++i) {
             this.blocks.push(0);
         }
-        this.colorMap.set(0, '#820');
-        this.colorMap.set(1, '#f40');
+        this.colorMap.set(0, '#840');
+        this.colorMap.set(1, '#f80');
         this.updateCanvas();
     }
     updateCanvas() {

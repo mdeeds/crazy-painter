@@ -13,9 +13,9 @@ export class PaintBrush {
 
   constructor(private entity: AFRAME.Entity) {
     this.obj = entity.object3D;
-    this.entity.setAttribute('color', 'orange');
-    this.visibleColor = 'orange';
-    this.dip('orange')
+    this.entity.setAttribute('color', '#f80');
+    this.visibleColor = '#f80';
+    this.dip('#f80')
   }
 
   public getSupply() {
@@ -88,7 +88,6 @@ export class Brush {
 
       }
     }
-
   }
 
   tick(timeMs: number, timeDeltaMs: number) {

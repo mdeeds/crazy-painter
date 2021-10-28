@@ -4,7 +4,7 @@ import { Foot } from "./foot";
 import { Pod } from "./pod";
 import { Wall } from "./wall";
 
-export class Gait {
+export class Critter {
   public static walkingGait = [[9, 7], [1, 7, 8]];
 
   private footEntities: AFRAME.Entity[] = [];
