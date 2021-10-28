@@ -9,7 +9,8 @@ export class CritterSource {
 
   constructor(private wall: Wall) {
     const turtleEnt = document.createElement('a-entity');
-    turtleEnt.setAttribute('position', `1 1 ${wall.wallZ}`);
+    turtleEnt.setAttribute('position', `0 1 ${wall.wallZ}`);
+    turtleEnt.setAttribute('rotation', '90 0 0');
     const turtle = this.makeTurtle(turtleEnt);
     this.critters.push(turtle);
     document.querySelector('a-scene').appendChild(turtleEnt);
@@ -37,10 +38,10 @@ export class CritterSource {
       Critter.walkingGait, body, this.wall);
 
 
-    critter.addFoot(this.makeFoot(container, 0.07, 0.08));
-    critter.addFoot(this.makeFoot(container, -0.07, 0.08));
-    critter.addFoot(this.makeFoot(container, -0.07, -0.08));
-    critter.addFoot(this.makeFoot(container, 0.07, -0.08));
+    critter.addFoot(this.makeFoot(body, 0.07, 0.08));
+    critter.addFoot(this.makeFoot(body, -0.07, 0.08));
+    critter.addFoot(this.makeFoot(body, -0.07, -0.08));
+    critter.addFoot(this.makeFoot(body, 0.07, -0.08));
     return critter;
   }
 
