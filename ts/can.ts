@@ -34,7 +34,6 @@ export class Can {
             // This will cause it to crash :-/
             // node.material.type = 'MeshBasicMaterial';
           }
-          console.log(node.material);
         }
       });
     });
