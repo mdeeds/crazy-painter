@@ -218,7 +218,6 @@ class Can {
                         // This will cause it to crash :-/
                         // node.material.type = 'MeshBasicMaterial';
                     }
-                    console.log(node.material);
                 }
             });
         });
@@ -254,6 +253,207 @@ class Can {
 }
 exports.Can = Can;
 //# sourceMappingURL=can.js.map
+
+/***/ }),
+
+/***/ 918:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Critter = void 0;
+const feet_1 = __webpack_require__(518);
+const foot_1 = __webpack_require__(410);
+const pod_1 = __webpack_require__(629);
+class Critter {
+    constructor(gaitDescriptor, body, wall) {
+        this.gaitDescriptor = gaitDescriptor;
+        this.wall = wall;
+        this.footEntities = [];
+        this.feet = new feet_1.Feet(0.12, 600, body);
+        // body.object3D.position.z = wall.wallZ;
+    }
+    addFoot(entity) {
+        this.footEntities.push(entity);
+        const i = this.footEntities.length % this.gaitDescriptor.length;
+        this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[i]), entity));
+    }
+    setPositions(timeMs) {
+        this.feet.setPositions(timeMs);
+    }
+}
+exports.Critter = Critter;
+Critter.walkingGait = [[9, 7], [1, 7, 8]];
+;
+// function scamper() {
+//   // #########.......
+//   // #.......########
+//   // .#########......
+//   // .......#########  
+//   feet = new Feet(0.30, 600, document.querySelector('#body'));
+//   feet.add(new Foot(
+//     new Pod([9, 7]), document.querySelector('#foot1')));
+//   feet.add(new Foot(
+//     new Pod([1, 7, 8]), document.querySelector('#foot2')));
+//   feet.add(new Foot(
+//     new Pod([0, 9, 6]), document.querySelector('#foot3')));
+//   feet.add(new Foot(
+//     new Pod([0, 7, 9]), document.querySelector('#foot4')));
+// }
+// function stomp() {
+//   // ####.#####
+//   // #########.
+//   feet = new Feet(0.30, 600, document.querySelector('#body'));
+//   feet.add(new Foot(
+//     new Pod([4, 1, 5]), document.querySelector('#foot1')));
+//   feet.add(new Foot(
+//     new Pod([9, 1]), document.querySelector('#foot2')));
+//   feet.add(new Foot(
+//     new Pod([4, 1, 5]), document.querySelector('#foot3')));
+//   feet.add(new Foot(
+//     new Pod([9, 1]), document.querySelector('#foot4')));
+// }
+// function frogWalk() {
+//   // ####.#####
+//   // .#######..
+//   feet = new Feet(0.30, 600, document.querySelector('#body'));
+//   feet.add(new Foot(
+//     new Pod([4, 1, 5]), document.querySelector('#foot1')));
+//   feet.add(new Foot(
+//     new Pod([0, 1, 7, 2]), document.querySelector('#foot2')));
+//   feet.add(new Foot(
+//     new Pod([9, 1]), document.querySelector('#foot3')));
+//   feet.add(new Foot(
+//     new Pod([4, 1, 5]), document.querySelector('#foot4')));
+// }
+// // function run() {
+// //   // ##....
+// //   // ...##.
+// //   feet.push(new Foot(
+// //     new Pod([2, 4]), document.querySelector('#foot1')));
+// //   feet.push(new Foot(
+// //     new Pod([0, 3, 2, 1]), document.querySelector('#foot2')));
+// // }
+// // function skip() {
+// //   // ##....
+// //   // .##...
+// //   feet.push(new Foot(
+// //     new Pod([2, 4]), document.querySelector('#foot1')));
+// //   feet.push(new Foot(
+// //     new Pod([0, 1, 2, 3]), document.querySelector('#foot2')));
+// // }
+// // function amble() {
+// //   // ##..
+// //   // .##.
+// //   // #..#
+// //   // ..##
+// //   feet.push(new Foot(
+// //     new Pod([2, 2]), document.querySelector('#foot1')));
+// //   feet.push(new Foot(
+// //     new Pod([0, 1, 2, 1]), document.querySelector('#foot2')));
+// //   feet.push(new Foot(
+// //     new Pod([1, 2, 1]), document.querySelector('#foot3')));
+// //   feet.push(new Foot(
+// //     new Pod([0, 2, 2]), document.querySelector('#foot4')));
+// // }
+// function lizardTrot() {
+//   feet = new Feet(0.15, 600, document.querySelector('#body'));
+//   // https://www.researchgate.net/figure/Hildebrand-style-gait-diagrams-A-and-B-and-axial-skeleton-displacement-patterns-C-and_fig3_236460049
+//   // LH ###########.........
+//   // LF ##........##########
+//   // RF ###########........#
+//   // RH .........###########
+//   feet.add(new Foot(
+//     new Pod([11, 9]), document.querySelector('#foot1')));
+//   feet.add(new Foot(
+//     new Pod([2, 9, 9]), document.querySelector('#foot2')));
+//   feet.add(new Foot(
+//     new Pod([11, 8, 1]), document.querySelector('#foot3')));
+//   feet.add(new Foot(
+//     new Pod([0, 9, 11]), document.querySelector('#foot4')));
+// }
+// function trot() {
+//   // ##..
+//   // ..##
+//   // ..##
+//   // ##..
+//   feet.push(new Foot(
+//     new Pod([2, 2]), document.querySelector('#foot1')));
+//   feet.push(new Foot(
+//     new Pod([0, 2, 2]), document.querySelector('#foot2')));
+//   feet.push(new Foot(
+//     new Pod([0, 2, 2]), document.querySelector('#foot3')));
+//   feet.push(new Foot(
+//     new Pod([2, 2]), document.querySelector('#foot4')));
+// }
+// function bound() {
+//   // ...#
+//   // ...#
+//   // ###.
+//   // ###.
+//   feet.push(new Foot(
+//     new Pod([0, 3, 1]), document.querySelector('#foot1')));
+//   feet.push(new Foot(
+//     new Pod([0, 3, 1]), document.querySelector('#foot2')));
+//   feet.push(new Foot(
+//     new Pod([3, 1]), document.querySelector('#foot3')));
+//   feet.push(new Foot(
+//     new Pod([3, 1]), document.querySelector('#foot4')));
+// }
+//# sourceMappingURL=critter.js.map
+
+/***/ }),
+
+/***/ 107:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CritterSource = void 0;
+const critter_1 = __webpack_require__(918);
+class CritterSource {
+    constructor(wall) {
+        this.wall = wall;
+        this.critters = [];
+        const turtleEnt = document.createElement('a-entity');
+        turtleEnt.setAttribute('position', `0 1 ${wall.wallZ}`);
+        turtleEnt.setAttribute('rotation', '90 0 0');
+        const turtle = this.makeTurtle(turtleEnt);
+        this.critters.push(turtle);
+        document.querySelector('a-scene').appendChild(turtleEnt);
+    }
+    makeFoot(container, x, z) {
+        const foot = document.createElement('a-cylinder');
+        foot.setAttribute('radius', '0.01');
+        foot.setAttribute('height', '0.01');
+        foot.setAttribute('position', `${x} -0.02 ${z}`);
+        container.appendChild(foot);
+        return foot;
+    }
+    makeTurtle(container) {
+        const body = document.createElement('a-box');
+        body.setAttribute('width', 0.2);
+        body.setAttribute('depth', '0.08');
+        body.setAttribute('height', '0.01');
+        body.setAttribute('position', '0 0.02 0');
+        container.appendChild(body);
+        const critter = new critter_1.Critter(critter_1.Critter.walkingGait, body, this.wall);
+        critter.addFoot(this.makeFoot(body, 0.07, 0.08));
+        critter.addFoot(this.makeFoot(body, -0.07, 0.08));
+        critter.addFoot(this.makeFoot(body, -0.07, -0.08));
+        critter.addFoot(this.makeFoot(body, 0.07, -0.08));
+        return critter;
+    }
+    tick(timeMs, timeDeltaMs) {
+        for (const critter of this.critters) {
+            critter.setPositions(timeMs);
+        }
+    }
+}
+exports.CritterSource = CritterSource;
+//# sourceMappingURL=critterSource.js.map
 
 /***/ }),
 
@@ -352,6 +552,89 @@ exports.EphemeralText = EphemeralText;
 
 /***/ }),
 
+/***/ 518:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Feet = void 0;
+class Feet {
+    // `gaitM` : Distance traveled in one cycle of the gait.
+    // `gaitMS` : Duration of the gait in milliseconds
+    constructor(gaitM, gaitMS, body) {
+        this.gaitM = gaitM;
+        this.gaitMS = gaitMS;
+        this.body = body;
+        this.feet = [];
+    }
+    add(foot) {
+        this.feet.push(foot);
+    }
+    setPositions(timeMs) {
+        const p = (timeMs / this.gaitMS) % 1; // percentage of 800ms
+        for (const foot of this.feet) {
+            foot.setPosition(p, this.gaitM);
+        }
+        const seconds = ((timeMs % 3000) - 1500) / 1000;
+        const mps = this.gaitM / (this.gaitMS / 1000);
+        this.body.object3D.position.x = -mps * seconds;
+    }
+}
+exports.Feet = Feet;
+//# sourceMappingURL=feet.js.map
+
+/***/ }),
+
+/***/ 410:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Foot = void 0;
+const AFRAME = __importStar(__webpack_require__(449));
+class Foot {
+    constructor(pod, foot) {
+        this.pod = pod;
+        this.foot = foot;
+        this.initialPosition = new AFRAME.THREE.Vector3();
+        this.initialPosition.copy(foot.object3D.position);
+    }
+    setPosition(p, gaitM) {
+        const [x, dx] = this.pod.getXdX(p);
+        this.foot.object3D.position.copy(this.initialPosition);
+        this.foot.object3D.position.x += x * gaitM;
+        if (dx < 0) {
+            this.foot.object3D.position.y += Foot.kLift;
+        }
+    }
+}
+exports.Foot = Foot;
+Foot.kLift = 0.02;
+//# sourceMappingURL=foot.js.map
+
+/***/ }),
+
 /***/ 138:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -394,9 +677,10 @@ const ephemeralText_1 = __webpack_require__(283);
 const score_1 = __webpack_require__(537);
 const wall_1 = __webpack_require__(649);
 const assetLibrary_1 = __webpack_require__(673);
+const critterSource_1 = __webpack_require__(107);
 var brush = null;
 var wall = null;
-var critter = null;
+var critters = null;
 var eText = null;
 var score;
 var cans = [];
@@ -409,6 +693,7 @@ AFRAME.registerComponent("go", {
             eText.addText("Let's go!", 0, 1.5, -0.6);
             score = new score_1.Score(document.querySelector('#score'));
             wall = new wall_1.Wall(eText, score);
+            critters = new critterSource_1.CritterSource(wall);
             brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall);
             const canEntity = document.createElement('a-entity');
             canEntity.setAttribute('position', '-0.5 0 -0.2');
@@ -450,8 +735,8 @@ AFRAME.registerComponent("go", {
     },
     tick: function (timeMs, timeDeltaMs) {
         try {
-            if (critter != null) {
-                critter.setPositions(timeMs);
+            if (critters != null) {
+                critters.tick(timeMs, timeDeltaMs);
             }
             if (brush != null) {
                 brush.tick(timeMs, timeDeltaMs);
@@ -499,6 +784,128 @@ body.innerHTML = `
 </a-scene>
 `;
 //# sourceMappingURL=index.js.map
+
+/***/ }),
+
+/***/ 629:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Pod = void 0;
+const pwll_1 = __webpack_require__(251);
+class Pod {
+    // #####---  :  [5, 3]
+    // #---####  :  [1, 3, 4]
+    // ####---#  :  [4, 3, 1]
+    // ---#####  :  [0, 3, 5]  // 0 = foot starts up
+    constructor(pattern) {
+        this.pattern = pattern;
+        let down = true;
+        if (pattern[0] == 0) {
+            down = false;
+            pattern.shift();
+        }
+        const totalLength = pattern.reduce((a, b) => a + b, 0);
+        let cumulativeLength = 0;
+        this.position = new pwll_1.PWLL();
+        if (pattern.length % 2 === 1 && down) {
+            // Odd pattern, so first and last need to be merged.
+            const len = pattern[0] + pattern[pattern.length - 1];
+            const pEnd = pattern[0] / totalLength;
+            const pStart = 1 - (pattern[pattern.length - 1] / totalLength);
+            this.position.add(new pwll_1.Motion(pStart, -len / 2 / totalLength));
+            this.position.add(new pwll_1.Motion(pEnd, len / 2 / totalLength));
+            pattern.shift();
+            pattern.pop();
+            down = false;
+        }
+        for (let i = 0; i < pattern.length; ++i) {
+            const len = pattern[i];
+            const p = cumulativeLength / totalLength;
+            if (down) {
+                this.position.add(new pwll_1.Motion(p, -len / 2 / totalLength));
+                let x = len / totalLength;
+                this.position.add(new pwll_1.Motion(p + x, len / 2 / totalLength));
+            }
+            down = !down;
+            cumulativeLength += len;
+        }
+    }
+    getXdX(p) {
+        return this.position.getXdX(p);
+    }
+}
+exports.Pod = Pod;
+//# sourceMappingURL=pod.js.map
+
+/***/ }),
+
+/***/ 251:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PWLL = exports.Motion = void 0;
+class Motion {
+    constructor(p, x) {
+        this.p = p;
+        this.x = x;
+    }
+}
+exports.Motion = Motion;
+/**
+ * A PWLL is a PieceWise Linear Loop.  It's a piecewise function
+ * defined over the interval [0, 1] where the last control point "loops"
+ * back around to the first.
+ */
+class PWLL {
+    constructor() {
+        this.controlPoints = [];
+        this.firstP = 0;
+        this.lastP = 0;
+    }
+    add(m) {
+        this.controlPoints.push(m);
+        this.controlPoints.sort((a, b) => a.p - b.p);
+        this.lastP = this.controlPoints[this.controlPoints.length - 1].p;
+        this.firstP = this.controlPoints[0].p;
+    }
+    getXdX(p) {
+        let q = 0;
+        let len = 0;
+        let i = 0;
+        let j = 0;
+        if (p > this.lastP) {
+            q = (p - this.lastP);
+            len = 1 - this.lastP + this.firstP;
+            i = this.controlPoints.length - 1;
+            j = 0;
+        }
+        else if (p < this.firstP) {
+            q = (1 - this.lastP) + p;
+            len = 1 - this.lastP + this.firstP;
+            i = this.controlPoints.length - 1;
+            j = 0;
+        }
+        else {
+            while (p < this.controlPoints[i].p) {
+                ++i;
+            }
+            j = i + 1;
+            q = p - this.controlPoints[i].p;
+            len = this.controlPoints[j].p - this.controlPoints[i].p;
+        }
+        const x = (q / len) * this.controlPoints[j].x
+            + (1 - q / len) * this.controlPoints[i].x;
+        const dx = (this.controlPoints[j].x - this.controlPoints[i].x) / len;
+        return [x, dx];
+    }
+}
+exports.PWLL = PWLL;
+//# sourceMappingURL=pwll.js.map
 
 /***/ }),
 
