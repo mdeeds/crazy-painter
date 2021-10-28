@@ -4,40 +4,49 @@ import { Critter } from "./critter";
 import { Wall } from "./wall";
 
 export class CritterSource {
-  constructor(private wall: Wall) { }
 
-  private makeFoot(x: number, y: number): AFRAME.Entity {
+  private critters: Critter[] = [];
+
+  constructor(private wall: Wall) {
+    const turtleEnt = document.createElement('a-entity');
+    turtleEnt.setAttribute('position', `1 1 ${wall.wallZ}`);
+    const turtle = this.makeTurtle(turtleEnt);
+    this.critters.push(turtle);
+    document.querySelector('a-scene').appendChild(turtleEnt);
+  }
+
+  private makeFoot(container: AFRAME.Entity, x: number, z: number): AFRAME.Entity {
     const foot = document.createElement('a-cylinder');
     foot.setAttribute('radius', '0.01');
     foot.setAttribute('height', '0.01');
-    foot.setAttribute('position', `${x} ${y} 0`)
+    foot.setAttribute('position', `${x} -0.02 ${z}`);
+    container.appendChild(foot);
     return foot;
   }
 
-  private makeTurtle() {
-    const container = document.createElement('a-entity');
+  private makeTurtle(container: AFRAME.Entity) {
 
-
-    // <a-entity id='dog' rotation='90 0 0' position='0 2 -0.8'>
-    // <a-box id='body' width=0.2 depth=0.08 height=0.01 position="0 0.02 0" >
-    //   <a-cylinder id='foot_lh' height=0.01 radius=0.01 position= "0.07 -0.02  0.08" ></a-cylinder>
-    //   <a-cylinder id='foot_lf' height=0.01 radius=0.01 position="-0.07 -0.02  0.08" ></a-cylinder>
-    //   <a-cylinder id='foot_rf' height=0.01 radius=0.01 position="-0.07 -0.02 -0.08" ></a-cylinder>
-    //   <a-cylinder id='foot_rh' height=0.01 radius=0.01 position= "0.07 -0.02 -0.08" ></a-cylinder>
-    // </a-box>
-    // </a-entity>
-
-
+    const body = document.createElement('a-box');
+    body.setAttribute('width', 0.2);
+    body.setAttribute('depth', '0.08');
+    body.setAttribute('height', '0.01');
+    body.setAttribute('position', '0 0.02 0');
+    container.appendChild(body);
 
     const critter = new Critter(
-      Critter.walkingGait, document.querySelector('#body'), this.wall);
-    critter.addFoot(document.querySelector('#foot_lh'));
-    critter.addFoot(document.querySelector('#foot_lf'));
-    critter.addFoot(document.querySelector('#foot_rf'));
-    critter.addFoot(document.querySelector('#foot_rh'));
+      Critter.walkingGait, body, this.wall);
+
+
+    critter.addFoot(this.makeFoot(container, 0.07, 0.08));
+    critter.addFoot(this.makeFoot(container, -0.07, 0.08));
+    critter.addFoot(this.makeFoot(container, -0.07, -0.08));
+    critter.addFoot(this.makeFoot(container, 0.07, -0.08));
     return critter;
   }
 
   tick(timeMs: number, timeDeltaMs: number) {
+    for (const critter of this.critters) {
+      critter.setPositions(timeMs);
+    }
   }
 }

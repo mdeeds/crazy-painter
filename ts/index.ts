@@ -7,10 +7,11 @@ import { Critter } from "./critter";
 import { Score } from "./score";
 import { Wall } from "./wall";
 import { AssetLibrary } from "./assetLibrary";
+import { CritterSource } from "./critterSource";
 
 var brush = null;
 var wall: Wall = null;
-var critter: Critter = null;
+var critters: CritterSource = null;
 var eText: EphemeralText = null;
 var score: Score;
 var cans: Can[] = [];
@@ -24,6 +25,9 @@ AFRAME.registerComponent("go", {
     score = new Score(document.querySelector('#score'));
 
     wall = new Wall(eText, score);
+
+    critters = new CritterSource(wall);
+
     brush = new Brush(document.querySelector('#player'),
       document.querySelector('#leftHand').object3D,
       document.querySelector('#rightHand').object3D, wall);
@@ -56,8 +60,8 @@ AFRAME.registerComponent("go", {
   },
   tick: function (timeMs: number, timeDeltaMs: number) {
     try {
-      if (critter != null) {
-        critter.setPositions(timeMs);
+      if (critters != null) {
+        critters.tick(timeMs, timeDeltaMs);
       }
       if (brush != null) {
         brush.tick(timeMs, timeDeltaMs);
