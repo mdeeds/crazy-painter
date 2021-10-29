@@ -93,7 +93,9 @@ export class Brush {
   tick(timeMs: number, timeDeltaMs: number) {
     this.leftMinusRight.copy(this.leftHand.position);
     this.leftMinusRight.sub(this.rightHand.position);
-    this.leftMinusRight.normalize().multiplyScalar(0.4);
+    const distance = this.leftMinusRight.length();
+    this.leftMinusRight.normalize().multiplyScalar(Math.max(distance, 0.4));
+    // this.leftMinusRight.normalize().multiplyScalar(0.4);
     this.leftBrush.obj.position.copy(this.leftHand.position);
     this.leftBrush.obj.position.add(this.leftMinusRight);
     this.rightBrush.obj.position.copy(this.rightHand.position);
