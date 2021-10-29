@@ -7,7 +7,7 @@ export class Feet {
   // `gaitM` : Distance traveled in one cycle of the gait.
   // `gaitMS` : Duration of the gait in milliseconds
   constructor(private gaitM: number, private gaitMS: number,
-    private body: AFRAME.Entity) { }
+    private container: AFRAME.Entity, private body: AFRAME.Entity) { }
   add(foot: Foot) {
     this.feet.push(foot);
   }
@@ -18,6 +18,6 @@ export class Feet {
     }
     const seconds = ((timeMs % 3000) - 1500) / 1000;
     const mps = this.gaitM / (this.gaitMS / 1000);
-    this.body.object3D.position.x = -mps * seconds;
+    this.container.object3D.position.x = -mps * seconds;
   }
 }

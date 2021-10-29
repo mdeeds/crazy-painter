@@ -1,8 +1,14 @@
 import * as AFRAME from "aframe";
+import { Debug } from "./debug";
 import { Feet } from "./feet";
 import { Foot } from "./foot";
 import { Pod } from "./pod";
 import { Wall } from "./wall";
+
+export class CritterParts {
+  readonly feet: AFRAME.Entity[] = [];
+  constructor(readonly body: AFRAME.Entity) { }
+}
 
 export class Critter {
   public static walkingGait = [[9, 7], [1, 7, 8]];
@@ -10,15 +16,17 @@ export class Critter {
   private footEntities: AFRAME.Entity[] = [];
   private feet: Feet;
   constructor(private gaitDescriptor: number[][],
-    body: AFRAME.Entity, private wall: Wall) {
-    this.feet = new Feet(0.12, 600, body);
-    // body.object3D.position.z = wall.wallZ;
-  }
+    private container: AFRAME.Entity, private parts: CritterParts, private wall: Wall) {
 
-  addFoot(entity: AFRAME.Entity) {
-    this.footEntities.push(entity);
-    const i = this.footEntities.length % this.gaitDescriptor.length;
-    this.feet.add(new Foot(new Pod(this.gaitDescriptor[i]), entity));
+    container.appendChild(parts.body);
+    this.feet = new Feet(0.12, 600, container, parts.body);
+
+    for (const [i, f] of parts.feet.entries()) {
+      const gaitIndex = i % this.gaitDescriptor.length;
+      this.feet.add(new Foot(new Pod(this.gaitDescriptor[gaitIndex]), f));
+      container.appendChild(f);
+    }
+    // body.object3D.position.z = wall.wallZ;
   }
 
   setPositions(timeMs: number) {
