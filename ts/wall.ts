@@ -96,6 +96,8 @@ export class Wall {
       const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
       let hasChanges = false;
       let deltaPoints = 0;
+      let sum_x = 0;
+      let sum_y = 0;
       for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
         if (i < 0 || i >= this.kWidth) {
           continue;
@@ -116,10 +118,8 @@ export class Wall {
               this.blocks[i + j * this.kWidth] = 1;
               const wx = this.worldXForI(i);
               const wy = this.worldYForJ(j);
-              this.eText.addText(`+ 1`,
-                wx + (Math.random() - 0.5) * 0.01,
-                wy + (Math.random() - 0.5) * 0.01,
-                this.wallZ + Math.random() * 0.05);
+              sum_x += wx;
+              sum_y += wy;
               ++deltaPoints;
               hasChanges = true;
             }
@@ -130,6 +130,9 @@ export class Wall {
         this.updateCanvas();
         this.score.add(deltaPoints);
         brush.removeSupply(deltaPoints);
+        this.eText.addText(`+${deltaPoints}`,
+          sum_x / deltaPoints, sum_y / deltaPoints,
+          this.wallZ + Math.random() * 0.05);
       }
     } catch (e) {
       Debug.set(`error: ${e}`);
