@@ -262,22 +262,32 @@ exports.Can = Can;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Critter = void 0;
+exports.Critter = exports.CritterParts = void 0;
 const feet_1 = __webpack_require__(518);
 const foot_1 = __webpack_require__(410);
 const pod_1 = __webpack_require__(629);
+class CritterParts {
+    constructor(body) {
+        this.body = body;
+        this.feet = [];
+    }
+}
+exports.CritterParts = CritterParts;
 class Critter {
-    constructor(gaitDescriptor, body, wall) {
+    constructor(gaitDescriptor, container, parts, wall) {
         this.gaitDescriptor = gaitDescriptor;
+        this.container = container;
+        this.parts = parts;
         this.wall = wall;
         this.footEntities = [];
-        this.feet = new feet_1.Feet(0.12, 600, body);
+        container.appendChild(parts.body);
+        this.feet = new feet_1.Feet(0.12, 600, container, parts.body);
+        for (const [i, f] of parts.feet.entries()) {
+            const gaitIndex = i % this.gaitDescriptor.length;
+            this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[gaitIndex]), f));
+            container.appendChild(f);
+        }
         // body.object3D.position.z = wall.wallZ;
-    }
-    addFoot(entity) {
-        this.footEntities.push(entity);
-        const i = this.footEntities.length % this.gaitDescriptor.length;
-        this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[i]), entity));
     }
     setPositions(timeMs) {
         this.feet.setPositions(timeMs);
@@ -424,26 +434,25 @@ class CritterSource {
         this.critters.push(turtle);
         document.querySelector('a-scene').appendChild(turtleEnt);
     }
-    makeFoot(container, x, z) {
+    makeFoot(x, z, container) {
         const foot = document.createElement('a-cylinder');
         foot.setAttribute('radius', '0.01');
         foot.setAttribute('height', '0.01');
-        foot.setAttribute('position', `${x} -0.02 ${z}`);
-        container.appendChild(foot);
+        foot.object3D.position.set(x, 0.02, z);
         return foot;
     }
     makeTurtle(container) {
         const body = document.createElement('a-box');
-        body.setAttribute('width', 0.2);
-        body.setAttribute('depth', '0.08');
+        body.setAttribute('width', '0.2');
+        body.setAttribute('depth', '0.01');
         body.setAttribute('height', '0.01');
         body.setAttribute('position', '0 0.02 0');
-        container.appendChild(body);
-        const critter = new critter_1.Critter(critter_1.Critter.walkingGait, body, this.wall);
-        critter.addFoot(this.makeFoot(body, 0.07, 0.08));
-        critter.addFoot(this.makeFoot(body, -0.07, 0.08));
-        critter.addFoot(this.makeFoot(body, -0.07, -0.08));
-        critter.addFoot(this.makeFoot(body, 0.07, -0.08));
+        const parts = new critter_1.CritterParts(body);
+        parts.feet.push(this.makeFoot(0.07, 0.03, container));
+        parts.feet.push(this.makeFoot(-0.07, 0.03, container));
+        parts.feet.push(this.makeFoot(-0.07, -0.03, container));
+        parts.feet.push(this.makeFoot(0.07, -0.03, container));
+        const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall);
         return critter;
     }
     tick(timeMs, timeDeltaMs) {
@@ -562,9 +571,10 @@ exports.Feet = void 0;
 class Feet {
     // `gaitM` : Distance traveled in one cycle of the gait.
     // `gaitMS` : Duration of the gait in milliseconds
-    constructor(gaitM, gaitMS, body) {
+    constructor(gaitM, gaitMS, container, body) {
         this.gaitM = gaitM;
         this.gaitMS = gaitMS;
+        this.container = container;
         this.body = body;
         this.feet = [];
     }
@@ -578,7 +588,7 @@ class Feet {
         }
         const seconds = ((timeMs % 3000) - 1500) / 1000;
         const mps = this.gaitM / (this.gaitMS / 1000);
-        this.body.object3D.position.x = -mps * seconds;
+        this.container.object3D.position.x = -mps * seconds;
     }
 }
 exports.Feet = Feet;
@@ -802,6 +812,7 @@ class Pod {
     // ---#####  :  [0, 3, 5]  // 0 = foot starts up
     constructor(pattern) {
         this.pattern = pattern;
+        pattern = pattern.slice(0);
         let down = true;
         if (pattern[0] == 0) {
             down = false;
