@@ -150,7 +150,9 @@ class Brush {
     tick(timeMs, timeDeltaMs) {
         this.leftMinusRight.copy(this.leftHand.position);
         this.leftMinusRight.sub(this.rightHand.position);
-        this.leftMinusRight.normalize().multiplyScalar(0.4);
+        const distance = this.leftMinusRight.length();
+        this.leftMinusRight.normalize().multiplyScalar(Math.max(distance, 0.4));
+        // this.leftMinusRight.normalize().multiplyScalar(0.4);
         this.leftBrush.obj.position.copy(this.leftHand.position);
         this.leftBrush.obj.position.add(this.leftMinusRight);
         this.rightBrush.obj.position.copy(this.rightHand.position);
@@ -477,7 +479,7 @@ class Debug {
     static init() {
         const container = document.querySelector('a-camera');
         Debug.text = document.createElement('a-entity');
-        Debug.text.setAttribute('text', 'value: "Hello, World!";');
+        Debug.text.setAttribute('text', `value: ${new Date().toLocaleString()};`);
         Debug.text.setAttribute('width', '0.5');
         Debug.text.setAttribute('position', '0 0.2 -0.7');
         container.appendChild(Debug.text);
@@ -740,6 +742,10 @@ AFRAME.registerComponent("go", {
                 rh.object3D.position.x += dx;
                 rh.object3D.position.y += dy;
                 rh.object3D.position.z += dz;
+                const lh = document.querySelector('#leftHand');
+                lh.object3D.position.x -= dx;
+                lh.object3D.position.y -= dy;
+                lh.object3D.position.z -= dz;
             });
         });
     },
@@ -1034,6 +1040,8 @@ class Wall {
             const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
             let hasChanges = false;
             let deltaPoints = 0;
+            let sum_x = 0;
+            let sum_y = 0;
             for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
                 if (i < 0 || i >= this.kWidth) {
                     continue;
@@ -1054,7 +1062,8 @@ class Wall {
                             this.blocks[i + j * this.kWidth] = 1;
                             const wx = this.worldXForI(i);
                             const wy = this.worldYForJ(j);
-                            this.eText.addText(`+ 1`, wx + (Math.random() - 0.5) * 0.01, wy + (Math.random() - 0.5) * 0.01, this.wallZ + Math.random() * 0.05);
+                            sum_x += wx;
+                            sum_y += wy;
                             ++deltaPoints;
                             hasChanges = true;
                         }
@@ -1065,6 +1074,7 @@ class Wall {
                 this.updateCanvas();
                 this.score.add(deltaPoints);
                 brush.removeSupply(deltaPoints);
+                this.eText.addText(`+${deltaPoints}`, sum_x / deltaPoints, sum_y / deltaPoints, this.wallZ + Math.random() * 0.05);
             }
         }
         catch (e) {
