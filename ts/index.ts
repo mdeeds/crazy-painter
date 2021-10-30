@@ -56,6 +56,10 @@ AFRAME.registerComponent("go", {
       rh.object3D.position.x += dx;
       rh.object3D.position.y += dy;
       rh.object3D.position.z += dz;
+      const lh = document.querySelector('#leftHand');
+      lh.object3D.position.x -= dx;
+      lh.object3D.position.y -= dy;
+      lh.object3D.position.z -= dz;
     });
   },
   tick: function (timeMs: number, timeDeltaMs: number) {

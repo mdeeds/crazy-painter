@@ -8,6 +8,7 @@ export class Pod {
   // ---#####  :  [0, 3, 5]  // 0 = foot starts up
 
   constructor(private pattern: number[]) {
+    pattern = pattern.slice(0);
     let down = true;
     if (pattern[0] == 0) {
       down = false;
