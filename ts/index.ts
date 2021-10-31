@@ -77,6 +77,10 @@ AFRAME.registerComponent("go", {
       }
     } catch (e) {
       Debug.set(`Tick error: ${e}`);
+      const url = new URL(document.URL);
+      if (url.searchParams.get('throw')) {
+        throw e;
+      }
     }
   }
 });
