@@ -44,18 +44,21 @@ export class CritterSource {
     return new Promise<Critter>((resolve, reject) => {
       console.log(`Number of feet A ${parts.feet.length}`);
       // parts.feet.push(this.makeFoot(0.07, 0.03, container));
-      parts.feet.push(this.makeFoot(-0.07, 0.03, container));
-      parts.feet.push(this.makeFoot(-0.07, -0.03, container));
-      parts.feet.push(this.makeFoot(0.07, -0.03, container));
+      // parts.feet.push(this.makeFoot(-0.07, 0.03, container));
+      // parts.feet.push(this.makeFoot(-0.07, -0.03, container));
+      // parts.feet.push(this.makeFoot(0.07, -0.03, container));
       console.log(`Number of feet B ${parts.feet.length}`);
       this.lizard.addEventListener('model-loaded', () => {
         console.log('Loaded');
         const obj = this.lizard.getObject3D('mesh');
         obj.traverse(node => {
           console.log(`name: ${node.name}`);
-          if (node.name === 'Foot-0') {
+          const m = (/foo[tr]-([\d+])/i).exec(node.name);
+          if (m && m.length > 0) {
+            console.log(`m: ${JSON.stringify(m)}`);
+            const i = parseInt(m[1]);
             this.extractObject(node, this.lizard);
-            parts.feet.push(node);
+            parts.feet[i] = node;
           }
         });
         const critter = new Critter(
