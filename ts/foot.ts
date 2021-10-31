@@ -9,6 +9,7 @@ export class Foot {
   constructor(private pod: Pod, private foot: any) {  // THREE.Object3D
     this.initialPosition = new AFRAME.THREE.Vector3();
     this.initialPosition.copy(foot.position);
+    console.log(foot.position);
   }
 
   setPosition(p: number, gaitM: number) {
