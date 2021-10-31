@@ -284,6 +284,7 @@ class Critter {
         this.spawnTimeMs = spawnTimeMs;
         this.footObjects = []; // THREE.Object3D
         this.feet = new feet_1.Feet(0.12, 600, container, parts.body);
+        console.log(`number of feet: ${parts.feet.length}`);
         for (const [i, f] of parts.feet.entries()) {
             const gaitIndex = i % this.gaitDescriptor.length;
             this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[gaitIndex]), f));
@@ -470,37 +471,44 @@ class CritterSource {
         return foot.object3D;
     }
     extractObject(obj, container) {
-        const ent = document.createElement('a-entity');
+        // const ent = document.createElement('a-entity');
         obj.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#0f0' });
-        ent.object3D = obj;
-        container.appendChild(ent);
+        console.log(obj.position);
+        // obj.parent.remove(obj);
+        // ent.object3D = obj;
+        // container.appendChild(ent);
     }
-    makeTurtle(container, spawnTime) {
+    makeTurtle(container, spawnTime, scene) {
         return __awaiter(this, void 0, void 0, function* () {
             this.lizard = document.createElement('a-entity');
-            this.lizard.setAttribute('gltf-model', `#${this.assetLibrary.getId('obj/lizard.gltf')}`);
-            this.lizard.setAttribute('scale', '0.02 0.02 0.02');
+            this.lizard.setAttribute('gltf-model', `#${this.assetLibrary.getId('obj/lizard.glb')}`);
             console.log('Making a turtle');
             container.appendChild(this.lizard);
             const parts = new critter_1.CritterParts(this.lizard);
             return new Promise((resolve, reject) => {
+                console.log(`Number of feet A ${parts.feet.length}`);
+                // parts.feet.push(this.makeFoot(0.07, 0.03, container));
+                // parts.feet.push(this.makeFoot(-0.07, 0.03, container));
+                // parts.feet.push(this.makeFoot(-0.07, -0.03, container));
+                // parts.feet.push(this.makeFoot(0.07, -0.03, container));
+                console.log(`Number of feet B ${parts.feet.length}`);
                 this.lizard.addEventListener('model-loaded', () => {
                     console.log('Loaded');
                     const obj = this.lizard.getObject3D('mesh');
                     obj.traverse(node => {
                         console.log(`name: ${node.name}`);
-                        if (node.name === 'Foot-0') {
+                        const m = (/foo[tr]-([\d+])/i).exec(node.name);
+                        if (m && m.length > 0) {
+                            console.log(`m: ${JSON.stringify(m)}`);
+                            const i = parseInt(m[1]);
                             this.extractObject(node, this.lizard);
-                            parts.feet.push(node);
+                            parts.feet[i] = node;
                         }
                     });
+                    const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall, spawnTime);
+                    resolve(critter);
                 });
-                // parts.feet.push(this.makeFoot(0.07, 0.03, container));
-                parts.feet.push(this.makeFoot(-0.07, 0.03, container));
-                parts.feet.push(this.makeFoot(-0.07, -0.03, container));
-                parts.feet.push(this.makeFoot(0.07, -0.03, container));
-                const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall, spawnTime);
-                resolve(critter);
+                scene.appendChild(container);
             });
         });
     }
@@ -512,10 +520,9 @@ class CritterSource {
                 const turtleEnt = document.createElement('a-entity');
                 turtleEnt.setAttribute('position', `1 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
                 turtleEnt.setAttribute('rotation', '90 0 0');
-                const turtle = yield this.makeTurtle(turtleEnt, timeMs);
+                const turtle = yield this.makeTurtle(turtleEnt, timeMs, document.querySelector('a-scene'));
                 console.log('Got a turtle');
                 this.critters.push(turtle);
-                document.querySelector('a-scene').appendChild(turtleEnt);
             }
             for (const critter of this.critters) {
                 critter.setPositions(timeMs);
@@ -691,6 +698,7 @@ class Foot {
         this.foot = foot;
         this.initialPosition = new AFRAME.THREE.Vector3();
         this.initialPosition.copy(foot.position);
+        console.log(foot.position);
     }
     setPosition(p, gaitM) {
         const [x, dx] = this.pod.getXdX(p);
