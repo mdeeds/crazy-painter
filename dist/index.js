@@ -271,8 +271,8 @@ const pod_1 = __webpack_require__(629);
 class CritterParts {
     constructor(body) {
         this.body = body;
-        this.feet = [];
-    }
+        this.feet = []; // THREE.Object3D
+    } // THREE.Object3D
 }
 exports.CritterParts = CritterParts;
 class Critter {
@@ -282,13 +282,11 @@ class Critter {
         this.parts = parts;
         this.wall = wall;
         this.spawnTimeMs = spawnTimeMs;
-        this.footEntities = [];
-        container.appendChild(parts.body);
+        this.footObjects = []; // THREE.Object3D
         this.feet = new feet_1.Feet(0.12, 600, container, parts.body);
         for (const [i, f] of parts.feet.entries()) {
             const gaitIndex = i % this.gaitDescriptor.length;
             this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[gaitIndex]), f));
-            container.appendChild(f);
         }
         // body.object3D.position.z = wall.wallZ;
     }
@@ -419,12 +417,41 @@ Critter.walkingGait = [[9, 7], [1, 7, 8]];
 /***/ }),
 
 /***/ 107:
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CritterSource = void 0;
+const AFRAME = __importStar(__webpack_require__(449));
 const critter_1 = __webpack_require__(918);
 class CritterSource {
     constructor(wall, assetLibrary) {
@@ -439,41 +466,61 @@ class CritterSource {
         foot.setAttribute('radius', '0.01');
         foot.setAttribute('height', '0.01');
         foot.object3D.position.set(x, 0.02, z);
-        return foot;
+        container.appendChild(foot);
+        return foot.object3D;
+    }
+    extractObject(obj, container) {
+        const ent = document.createElement('a-entity');
+        obj.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#0f0' });
+        ent.object3D = obj;
+        container.appendChild(ent);
     }
     makeTurtle(container, spawnTime) {
-        this.lizard = document.createElement('a-entity');
-        this.lizard.setAttribute('gltf-model', `#${this.assetLibrary.getId('obj/lizard.gltf')}`);
-        this.lizard.setAttribute('scale', '0.02 0.02 0.02');
-        this.lizard.addEventListener('model-loaded', () => {
-            console.log('Loaded');
-            const obj = this.lizard.getObject3D('mesh');
-            obj.traverse(node => {
-                console.log(`name: ${node.name}`);
+        return __awaiter(this, void 0, void 0, function* () {
+            this.lizard = document.createElement('a-entity');
+            this.lizard.setAttribute('gltf-model', `#${this.assetLibrary.getId('obj/lizard.gltf')}`);
+            this.lizard.setAttribute('scale', '0.02 0.02 0.02');
+            console.log('Making a turtle');
+            container.appendChild(this.lizard);
+            const parts = new critter_1.CritterParts(this.lizard);
+            return new Promise((resolve, reject) => {
+                this.lizard.addEventListener('model-loaded', () => {
+                    console.log('Loaded');
+                    const obj = this.lizard.getObject3D('mesh');
+                    obj.traverse(node => {
+                        console.log(`name: ${node.name}`);
+                        if (node.name === 'Foot-0') {
+                            this.extractObject(node, this.lizard);
+                            parts.feet.push(node);
+                        }
+                    });
+                });
+                // parts.feet.push(this.makeFoot(0.07, 0.03, container));
+                parts.feet.push(this.makeFoot(-0.07, 0.03, container));
+                parts.feet.push(this.makeFoot(-0.07, -0.03, container));
+                parts.feet.push(this.makeFoot(0.07, -0.03, container));
+                const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall, spawnTime);
+                resolve(critter);
             });
         });
-        const parts = new critter_1.CritterParts(this.lizard);
-        parts.feet.push(this.makeFoot(0.07, 0.03, container));
-        parts.feet.push(this.makeFoot(-0.07, 0.03, container));
-        parts.feet.push(this.makeFoot(-0.07, -0.03, container));
-        parts.feet.push(this.makeFoot(0.07, -0.03, container));
-        const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall, spawnTime);
-        return critter;
     }
     tick(timeMs, timeDeltaMs) {
-        this.timeToNextCritterMs -= timeDeltaMs;
-        if (this.timeToNextCritterMs <= 0) {
-            const turtleEnt = document.createElement('a-entity');
-            turtleEnt.setAttribute('position', `1 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
-            turtleEnt.setAttribute('rotation', '90 0 0');
-            const turtle = this.makeTurtle(turtleEnt, timeMs);
-            this.critters.push(turtle);
-            document.querySelector('a-scene').appendChild(turtleEnt);
-            this.timeToNextCritterMs = 5000;
-        }
-        for (const critter of this.critters) {
-            critter.setPositions(timeMs);
-        }
+        return __awaiter(this, void 0, void 0, function* () {
+            this.timeToNextCritterMs -= timeDeltaMs;
+            if (this.timeToNextCritterMs <= 0) {
+                this.timeToNextCritterMs = 5000;
+                const turtleEnt = document.createElement('a-entity');
+                turtleEnt.setAttribute('position', `1 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
+                turtleEnt.setAttribute('rotation', '90 0 0');
+                const turtle = yield this.makeTurtle(turtleEnt, timeMs);
+                console.log('Got a turtle');
+                this.critters.push(turtle);
+                document.querySelector('a-scene').appendChild(turtleEnt);
+            }
+            for (const critter of this.critters) {
+                critter.setPositions(timeMs);
+            }
+        });
     }
 }
 exports.CritterSource = CritterSource;
@@ -643,14 +690,14 @@ class Foot {
         this.pod = pod;
         this.foot = foot;
         this.initialPosition = new AFRAME.THREE.Vector3();
-        this.initialPosition.copy(foot.object3D.position);
+        this.initialPosition.copy(foot.position);
     }
     setPosition(p, gaitM) {
         const [x, dx] = this.pod.getXdX(p);
-        this.foot.object3D.position.copy(this.initialPosition);
-        this.foot.object3D.position.x += x * gaitM;
+        this.foot.position.copy(this.initialPosition);
+        this.foot.position.x += x * gaitM;
         if (dx < 0) {
-            this.foot.object3D.position.y += Foot.kLift;
+            this.foot.position.y += Foot.kLift;
         }
     }
 }
@@ -779,6 +826,10 @@ AFRAME.registerComponent("go", {
         }
         catch (e) {
             debug_1.Debug.set(`Tick error: ${e}`);
+            const url = new URL(document.URL);
+            if (url.searchParams.get('throw')) {
+                throw e;
+            }
         }
     }
 });

@@ -24,6 +24,13 @@ export class CritterSource {
     return foot.object3D;
   }
 
+  private extractObject(obj: any, container: AFRAME.Entity) {
+    const ent = document.createElement('a-entity');
+    obj.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#0f0' });
+    ent.object3D = obj;
+    container.appendChild(ent);
+  }
+
   private async makeTurtle(container: AFRAME.Entity, spawnTime: number): Promise<Critter> {
     this.lizard = document.createElement('a-entity');
     this.lizard.setAttribute('gltf-model',
@@ -31,24 +38,26 @@ export class CritterSource {
     this.lizard.setAttribute('scale', '0.02 0.02 0.02');
     console.log('Making a turtle');
     container.appendChild(this.lizard);
-
-    this.lizard.addEventListener('model-loaded', () => {
-      console.log('Loaded');
-      const obj = this.lizard.getObject3D('mesh');
-      obj.traverse(node => {
-        console.log(`name: ${node.name}`)
-      });
-    });
-
     const parts = new CritterParts(this.lizard);
-    parts.feet.push(this.makeFoot(0.07, 0.03, container));
-    parts.feet.push(this.makeFoot(-0.07, 0.03, container));
-    parts.feet.push(this.makeFoot(-0.07, -0.03, container));
-    parts.feet.push(this.makeFoot(0.07, -0.03, container));
 
-    const critter = new Critter(
-      Critter.walkingGait, container, parts, this.wall, spawnTime);
     return new Promise<Critter>((resolve, reject) => {
+      this.lizard.addEventListener('model-loaded', () => {
+        console.log('Loaded');
+        const obj = this.lizard.getObject3D('mesh');
+        obj.traverse(node => {
+          console.log(`name: ${node.name}`);
+          if (node.name === 'Foot-0') {
+            this.extractObject(node, this.lizard);
+            parts.feet.push(node);
+          }
+        });
+      });
+      // parts.feet.push(this.makeFoot(0.07, 0.03, container));
+      parts.feet.push(this.makeFoot(-0.07, 0.03, container));
+      parts.feet.push(this.makeFoot(-0.07, -0.03, container));
+      parts.feet.push(this.makeFoot(0.07, -0.03, container));
+      const critter = new Critter(
+        Critter.walkingGait, container, parts, this.wall, spawnTime);
       resolve(critter);
     })
   }
