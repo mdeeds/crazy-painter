@@ -1,4 +1,5 @@
 import * as AFRAME from "aframe";
+import { AssetLibrary } from "./assetLibrary";
 
 import { Critter, CritterParts } from "./critter";
 import { Debug } from "./debug";
@@ -7,7 +8,10 @@ import { Wall } from "./wall";
 export class CritterSource {
   private timeToNextCritterMs = 1000;
   private critters: Critter[] = [];
-  constructor(private wall: Wall) {
+
+  private lizard = null;
+
+  constructor(private wall: Wall, private assetLibrary: AssetLibrary) {
   }
 
   private makeFoot(x: number, z: number, container: AFRAME.Entity): AFRAME.Entity {
@@ -19,13 +23,20 @@ export class CritterSource {
   }
 
   private makeTurtle(container: AFRAME.Entity, spawnTime: number) {
-    const body = document.createElement('a-box');
-    body.setAttribute('width', '0.2');
-    body.setAttribute('depth', '0.01');
-    body.setAttribute('height', '0.01');
-    body.setAttribute('position', '0 0.02 0');
+    this.lizard = document.createElement('a-entity');
+    this.lizard.setAttribute('gltf-model',
+      `#${this.assetLibrary.getId('obj/lizard.gltf')}`);
+    this.lizard.setAttribute('scale', '0.02 0.02 0.02');
 
-    const parts = new CritterParts(body);
+    this.lizard.addEventListener('model-loaded', () => {
+      console.log('Loaded');
+      const obj = this.lizard.getObject3D('mesh');
+      obj.traverse(node => {
+        console.log(`name: ${node.name}`)
+      });
+    });
+
+    const parts = new CritterParts(this.lizard);
     parts.feet.push(this.makeFoot(0.07, 0.03, container));
     parts.feet.push(this.makeFoot(-0.07, 0.03, container));
     parts.feet.push(this.makeFoot(-0.07, -0.03, container));

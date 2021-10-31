@@ -35,11 +35,11 @@ class AssetLibrary {
         if (this.idMap.has(url)) {
             return this.idMap.get(url);
         }
-        if (url.toLowerCase().endsWith('.obj') ||
-            url.toLocaleLowerCase().endsWith('.mtl')) {
-            return this.addItem(url);
+        if (url.toLowerCase().endsWith('.png') ||
+            url.toLocaleLowerCase().endsWith('.jpg')) {
+            return this.addImage(url);
         }
-        return this.addImage(url);
+        return this.addItem(url);
     }
 }
 exports.AssetLibrary = AssetLibrary;
@@ -276,11 +276,12 @@ class CritterParts {
 }
 exports.CritterParts = CritterParts;
 class Critter {
-    constructor(gaitDescriptor, container, parts, wall) {
+    constructor(gaitDescriptor, container, parts, wall, spawnTimeMs) {
         this.gaitDescriptor = gaitDescriptor;
         this.container = container;
         this.parts = parts;
         this.wall = wall;
+        this.spawnTimeMs = spawnTimeMs;
         this.footEntities = [];
         container.appendChild(parts.body);
         this.feet = new feet_1.Feet(0.12, 600, container, parts.body);
@@ -292,7 +293,7 @@ class Critter {
         // body.object3D.position.z = wall.wallZ;
     }
     setPositions(timeMs) {
-        this.feet.setPositions(timeMs);
+        this.feet.setPositions(timeMs - this.spawnTimeMs);
     }
 }
 exports.Critter = Critter;
@@ -426,15 +427,12 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CritterSource = void 0;
 const critter_1 = __webpack_require__(918);
 class CritterSource {
-    constructor(wall) {
+    constructor(wall, assetLibrary) {
         this.wall = wall;
+        this.assetLibrary = assetLibrary;
+        this.timeToNextCritterMs = 1000;
         this.critters = [];
-        const turtleEnt = document.createElement('a-entity');
-        turtleEnt.setAttribute('position', `0 1 ${wall.wallZ}`);
-        turtleEnt.setAttribute('rotation', '90 0 0');
-        const turtle = this.makeTurtle(turtleEnt);
-        this.critters.push(turtle);
-        document.querySelector('a-scene').appendChild(turtleEnt);
+        this.lizard = null;
     }
     makeFoot(x, z, container) {
         const foot = document.createElement('a-cylinder');
@@ -443,21 +441,36 @@ class CritterSource {
         foot.object3D.position.set(x, 0.02, z);
         return foot;
     }
-    makeTurtle(container) {
-        const body = document.createElement('a-box');
-        body.setAttribute('width', '0.2');
-        body.setAttribute('depth', '0.01');
-        body.setAttribute('height', '0.01');
-        body.setAttribute('position', '0 0.02 0');
-        const parts = new critter_1.CritterParts(body);
+    makeTurtle(container, spawnTime) {
+        this.lizard = document.createElement('a-entity');
+        this.lizard.setAttribute('gltf-model', `#${this.assetLibrary.getId('obj/lizard.gltf')}`);
+        this.lizard.setAttribute('scale', '0.02 0.02 0.02');
+        this.lizard.addEventListener('model-loaded', () => {
+            console.log('Loaded');
+            const obj = this.lizard.getObject3D('mesh');
+            obj.traverse(node => {
+                console.log(`name: ${node.name}`);
+            });
+        });
+        const parts = new critter_1.CritterParts(this.lizard);
         parts.feet.push(this.makeFoot(0.07, 0.03, container));
         parts.feet.push(this.makeFoot(-0.07, 0.03, container));
         parts.feet.push(this.makeFoot(-0.07, -0.03, container));
         parts.feet.push(this.makeFoot(0.07, -0.03, container));
-        const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall);
+        const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall, spawnTime);
         return critter;
     }
     tick(timeMs, timeDeltaMs) {
+        this.timeToNextCritterMs -= timeDeltaMs;
+        if (this.timeToNextCritterMs <= 0) {
+            const turtleEnt = document.createElement('a-entity');
+            turtleEnt.setAttribute('position', `1 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
+            turtleEnt.setAttribute('rotation', '90 0 0');
+            const turtle = this.makeTurtle(turtleEnt, timeMs);
+            this.critters.push(turtle);
+            document.querySelector('a-scene').appendChild(turtleEnt);
+            this.timeToNextCritterMs = 5000;
+        }
         for (const critter of this.critters) {
             critter.setPositions(timeMs);
         }
@@ -588,9 +601,9 @@ class Feet {
         for (const foot of this.feet) {
             foot.setPosition(p, this.gaitM);
         }
-        const seconds = ((timeMs % 3000) - 1500) / 1000;
+        const seconds = timeMs / 1000;
         const mps = this.gaitM / (this.gaitMS / 1000);
-        this.container.object3D.position.x = -mps * seconds;
+        this.container.object3D.position.x = 1 - mps * seconds;
     }
 }
 exports.Feet = Feet;
@@ -699,18 +712,18 @@ var cans = [];
 AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
-            const scene = document.querySelector('a-scene');
             debug_1.Debug.init();
+            const scene = document.querySelector('a-scene');
+            const assetLibrary = new assetLibrary_1.AssetLibrary(document.querySelector('a-assets'));
             eText = new ephemeralText_1.EphemeralText(scene);
             eText.addText("Let's go!", 0, 1.5, -0.6);
             score = new score_1.Score(document.querySelector('#score'));
             wall = new wall_1.Wall(eText, score);
-            critters = new critterSource_1.CritterSource(wall);
+            critters = new critterSource_1.CritterSource(wall, assetLibrary);
             brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall);
             const canEntity = document.createElement('a-entity');
             canEntity.setAttribute('position', '-0.5 0 -0.2');
             scene.appendChild(canEntity);
-            const assetLibrary = new assetLibrary_1.AssetLibrary(document.querySelector('a-assets'));
             const can = new can_1.Can(canEntity, brush.getBrushes(), assetLibrary);
             cans.push(can);
             const body = document.querySelector('body');

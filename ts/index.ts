@@ -18,15 +18,15 @@ var cans: Can[] = [];
 
 AFRAME.registerComponent("go", {
   init: async function () {
-    const scene = document.querySelector('a-scene');
     Debug.init();
+    const scene = document.querySelector('a-scene');
+    const assetLibrary = new AssetLibrary(document.querySelector('a-assets'));
     eText = new EphemeralText(scene);
     eText.addText("Let's go!", 0, 1.5, -0.6);
     score = new Score(document.querySelector('#score'));
 
     wall = new Wall(eText, score);
-
-    critters = new CritterSource(wall);
+    critters = new CritterSource(wall, assetLibrary);
 
     brush = new Brush(document.querySelector('#player'),
       document.querySelector('#leftHand').object3D,
@@ -35,7 +35,6 @@ AFRAME.registerComponent("go", {
     const canEntity = document.createElement('a-entity');
     canEntity.setAttribute('position', '-0.5 0 -0.2');
     scene.appendChild(canEntity);
-    const assetLibrary = new AssetLibrary(document.querySelector('a-assets'));
     const can = new Can(canEntity, brush.getBrushes(), assetLibrary);
     cans.push(can);
 

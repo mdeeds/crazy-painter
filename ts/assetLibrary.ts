@@ -31,10 +31,10 @@ export class AssetLibrary {
     if (this.idMap.has(url)) {
       return this.idMap.get(url);
     }
-    if (url.toLowerCase().endsWith('.obj') ||
-      url.toLocaleLowerCase().endsWith('.mtl')) {
-      return this.addItem(url);
+    if (url.toLowerCase().endsWith('.png') ||
+      url.toLocaleLowerCase().endsWith('.jpg')) {
+      return this.addImage(url);
     }
-    return this.addImage(url);
+    return this.addItem(url);
   }
 }
