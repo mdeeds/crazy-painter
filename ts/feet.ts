@@ -16,8 +16,8 @@ export class Feet {
     for (const foot of this.feet) {
       foot.setPosition(p, this.gaitM);
     }
-    const seconds = ((timeMs % 3000) - 1500) / 1000;
+    const seconds = timeMs / 1000;
     const mps = this.gaitM / (this.gaitMS / 1000);
-    this.container.object3D.position.x = -mps * seconds;
+    this.container.object3D.position.x = 1 - mps * seconds;
   }
 }

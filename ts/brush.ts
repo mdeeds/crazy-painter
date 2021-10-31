@@ -1,4 +1,5 @@
 import * as AFRAME from "aframe";
+
 import { Debug } from "./debug";
 import { Wall } from "./wall";
 

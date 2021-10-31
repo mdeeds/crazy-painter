@@ -5,14 +5,9 @@ import { Debug } from "./debug";
 import { Wall } from "./wall";
 
 export class CritterSource {
+  private timeToNextCritterMs = 1000;
   private critters: Critter[] = [];
   constructor(private wall: Wall) {
-    const turtleEnt = document.createElement('a-entity');
-    turtleEnt.setAttribute('position', `0 1 ${wall.wallZ}`);
-    turtleEnt.setAttribute('rotation', '90 0 0');
-    const turtle = this.makeTurtle(turtleEnt);
-    this.critters.push(turtle);
-    document.querySelector('a-scene').appendChild(turtleEnt);
   }
 
   private makeFoot(x: number, z: number, container: AFRAME.Entity): AFRAME.Entity {
@@ -23,8 +18,7 @@ export class CritterSource {
     return foot;
   }
 
-  private makeTurtle(container: AFRAME.Entity) {
-
+  private makeTurtle(container: AFRAME.Entity, spawnTime: number) {
     const body = document.createElement('a-box');
     body.setAttribute('width', '0.2');
     body.setAttribute('depth', '0.01');
@@ -38,11 +32,22 @@ export class CritterSource {
     parts.feet.push(this.makeFoot(0.07, -0.03, container));
 
     const critter = new Critter(
-      Critter.walkingGait, container, parts, this.wall);
+      Critter.walkingGait, container, parts, this.wall, spawnTime);
     return critter;
   }
 
   tick(timeMs: number, timeDeltaMs: number) {
+    this.timeToNextCritterMs -= timeDeltaMs;
+    if (this.timeToNextCritterMs <= 0) {
+      const turtleEnt = document.createElement('a-entity');
+      turtleEnt.setAttribute('position', `1 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
+      turtleEnt.setAttribute('rotation', '90 0 0');
+      const turtle = this.makeTurtle(turtleEnt, timeMs);
+      this.critters.push(turtle);
+      document.querySelector('a-scene').appendChild(turtleEnt);
+      this.timeToNextCritterMs = 5000;
+    }
+
     for (const critter of this.critters) {
       critter.setPositions(timeMs);
     }

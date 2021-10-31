@@ -16,7 +16,8 @@ export class Critter {
   private footEntities: AFRAME.Entity[] = [];
   private feet: Feet;
   constructor(private gaitDescriptor: number[][],
-    private container: AFRAME.Entity, private parts: CritterParts, private wall: Wall) {
+    private container: AFRAME.Entity, private parts: CritterParts,
+    private wall: Wall, private spawnTimeMs: number) {
 
     container.appendChild(parts.body);
     this.feet = new Feet(0.12, 600, container, parts.body);
@@ -30,7 +31,7 @@ export class Critter {
   }
 
   setPositions(timeMs: number) {
-    this.feet.setPositions(timeMs);
+    this.feet.setPositions(timeMs - this.spawnTimeMs);
   }
 };
 
