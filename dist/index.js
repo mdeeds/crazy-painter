@@ -283,16 +283,20 @@ class Critter {
         this.wall = wall;
         this.spawnTimeMs = spawnTimeMs;
         this.footObjects = []; // THREE.Object3D
+        this.done = false;
         this.feet = new feet_1.Feet(0.12, 600, container, parts.body);
         console.log(`number of feet: ${parts.feet.length}`);
         for (const [i, f] of parts.feet.entries()) {
             const gaitIndex = i % this.gaitDescriptor.length;
-            this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[gaitIndex]), f));
+            this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[gaitIndex]), f, this.wall));
         }
         // body.object3D.position.z = wall.wallZ;
     }
+    isDone() { return this.done; }
+    remove() { this.container.remove(); }
     setPositions(timeMs) {
         this.feet.setPositions(timeMs - this.spawnTimeMs);
+        this.done = this.feet.isDone();
     }
 }
 exports.Critter = Critter;
@@ -518,7 +522,7 @@ class CritterSource {
             if (this.timeToNextCritterMs <= 0) {
                 this.timeToNextCritterMs = 5000;
                 const turtleEnt = document.createElement('a-entity');
-                turtleEnt.setAttribute('position', `1 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
+                turtleEnt.setAttribute('position', `0 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
                 turtleEnt.setAttribute('rotation', '90 0 0');
                 const turtle = yield this.makeTurtle(turtleEnt, timeMs, document.querySelector('a-scene'));
                 console.log('Got a turtle');
@@ -526,6 +530,12 @@ class CritterSource {
             }
             for (const critter of this.critters) {
                 critter.setPositions(timeMs);
+            }
+            for (let i = 0; i < this.critters.length; ++i) {
+                if (this.critters[i].isDone()) {
+                    this.critters[i].remove();
+                    this.critters.splice(i, 1);
+                }
             }
         });
     }
@@ -646,10 +656,12 @@ class Feet {
         this.container = container;
         this.body = body;
         this.feet = [];
+        this.done = false;
     }
     add(foot) {
         this.feet.push(foot);
     }
+    isDone() { return this.done; }
     setPositions(timeMs) {
         const p = (timeMs / this.gaitMS) % 1; // percentage of 800ms
         for (const foot of this.feet) {
@@ -657,7 +669,11 @@ class Feet {
         }
         const seconds = timeMs / 1000;
         const mps = this.gaitM / (this.gaitMS / 1000);
-        this.container.object3D.position.x = 1 - mps * seconds;
+        const newX = 1.5 - mps * seconds;
+        this.container.object3D.position.x = newX;
+        if (newX < -1.5) {
+            this.done = true;
+        }
     }
 }
 exports.Feet = Feet;
@@ -693,19 +709,25 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Foot = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 class Foot {
-    constructor(pod, foot) {
+    constructor(pod, foot, wall) {
         this.pod = pod;
         this.foot = foot;
+        this.wall = wall;
+        this.worldPosition = new AFRAME.THREE.Vector3();
         this.initialPosition = new AFRAME.THREE.Vector3();
         this.initialPosition.copy(foot.position);
         console.log(foot.position);
     }
+    getSupply() { return 1; }
+    removeSupply(n) { }
     setPosition(p, gaitM) {
         const [x, dx] = this.pod.getXdX(p);
         this.foot.position.copy(this.initialPosition);
         this.foot.position.x += x * gaitM;
         if (dx < 0) {
             this.foot.position.y += Foot.kLift;
+            this.foot.getWorldPosition(this.worldPosition);
+            this.wall.paint(this.worldPosition, 0.05, this);
         }
     }
 }
@@ -788,22 +810,22 @@ AFRAME.registerComponent("go", {
                 let dz = 0;
                 switch (ev.code) {
                     case "KeyI":
-                        dy = 0.1;
+                        dy = 0.03;
                         break;
                     case "KeyK":
-                        dy = -0.1;
+                        dy = -0.03;
                         break;
                     case "KeyJ":
-                        dx = -0.1;
+                        dx = -0.03;
                         break;
                     case "KeyL":
-                        dx = 0.1;
+                        dx = 0.03;
                         break;
                     case "KeyU":
-                        dz = -0.1;
+                        dz = -0.05;
                         break;
                     case "KeyO":
-                        dz = 0.1;
+                        dz = 0.05;
                         break;
                 }
                 const rh = document.querySelector('#rightHand');
@@ -1044,6 +1066,7 @@ class Wall {
         this.kWallWidthMeters = 2;
         this.wallObject = null;
         this.wallPosition = null;
+        this.tmpPosition = new AFRAME.THREE.Vector3();
         const scene = document.querySelector('a-scene');
         const wall = document.createElement('a-entity');
         this.wallObject = wall.object3D;
@@ -1095,20 +1118,21 @@ class Wall {
     }
     paint(brushPosition, radius, brush) {
         try {
-            brushPosition.sub(this.wallPosition);
-            brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
-            brushPosition.x += 0.5;
-            brushPosition.y = 0.5 - brushPosition.y;
-            if (brushPosition.x < 0 || brushPosition.x > 1 ||
-                brushPosition.y < 0 || brushPosition.y > 1) {
+            this.tmpPosition.copy(brushPosition);
+            this.tmpPosition.sub(this.wallPosition);
+            this.tmpPosition.multiplyScalar(1 / this.kWallWidthMeters);
+            this.tmpPosition.x += 0.5;
+            this.tmpPosition.y = 0.5 - this.tmpPosition.y;
+            if (this.tmpPosition.x < 0 || this.tmpPosition.x > 1 ||
+                this.tmpPosition.y < 0 || this.tmpPosition.y > 1) {
                 return;
             }
             // brushPosition is now [0,1]
             // x = 0.5 * 1 / kWidth + i * 1/kWidth
             // x - 0.5 / kWidth = i / kWidth
             // kWidth * x - 0.5 = i
-            const ci = (this.kWidth * brushPosition.x) - 0.5;
-            const cj = (this.kWidth * brushPosition.y) - 0.5;
+            const ci = (this.kWidth * this.tmpPosition.x) - 0.5;
+            const cj = (this.kWidth * this.tmpPosition.y) - 0.5;
             const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
             let hasChanges = false;
             let deltaPoints = 0;

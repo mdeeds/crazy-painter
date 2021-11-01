@@ -1,9 +1,10 @@
 import * as AFRAME from "aframe";
 
 import { Debug } from "./debug";
+import { Painter } from "./painter";
 import { Wall } from "./wall";
 
-export class PaintBrush {
+export class PaintBrush implements Painter {
   private kPaintCapacity = 120;
   private color: string;
   private visibleColor: string;

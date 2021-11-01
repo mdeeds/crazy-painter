@@ -23,7 +23,7 @@ export class Critter {
     console.log(`number of feet: ${parts.feet.length}`);
     for (const [i, f] of parts.feet.entries()) {
       const gaitIndex = i % this.gaitDescriptor.length;
-      this.feet.add(new Foot(new Pod(this.gaitDescriptor[gaitIndex]), f));
+      this.feet.add(new Foot(new Pod(this.gaitDescriptor[gaitIndex]), f, this.wall));
     }
     // body.object3D.position.z = wall.wallZ;
   }
