@@ -12,7 +12,6 @@ export class Foot implements Painter {
   constructor(private pod: Pod, private foot: any, private wall: Wall) {
     this.initialPosition = new AFRAME.THREE.Vector3();
     this.initialPosition.copy(foot.position);
-    console.log(foot.position);
   }
 
   getSupply() { return this.color != null ? 1 : 0; }
@@ -31,7 +30,6 @@ export class Foot implements Painter {
       if (wallColor === null && this.color !== null) {
         this.wall.paint(this.worldPosition, 0.05, this)
       } else if (wallColor !== null && this.color != wallColor) {
-        console.log(`pick up ${wallColor}`);
         this.color = wallColor;
         // TODO: Change texture.
       }

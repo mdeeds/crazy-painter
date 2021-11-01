@@ -26,11 +26,11 @@ AFRAME.registerComponent("go", {
     score = new Score(document.querySelector('#score'));
 
     wall = new Wall(eText, score);
-    critters = new CritterSource(wall, assetLibrary);
+    critters = new CritterSource(wall, assetLibrary, score, eText);
 
     brush = new Brush(document.querySelector('#player'),
       document.querySelector('#leftHand').object3D,
-      document.querySelector('#rightHand').object3D, wall);
+      document.querySelector('#rightHand').object3D, wall, critters);
 
     const canEntity = document.createElement('a-entity');
     canEntity.setAttribute('position', '-0.5 0 -0.2');

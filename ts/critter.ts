@@ -1,8 +1,10 @@
 import * as AFRAME from "aframe";
 import { Debug } from "./debug";
+import { EphemeralText } from "./ephemeralText";
 import { Feet } from "./feet";
 import { Foot } from "./foot";
 import { Pod } from "./pod";
+import { Score } from "./score";
 import { Wall } from "./wall";
 
 export class CritterParts {
@@ -12,15 +14,13 @@ export class CritterParts {
 
 export class Critter {
   public static walkingGait = [[9, 7], [1, 7, 8]];
-
-  private footObjects: any[] = [];  // THREE.Object3D
   private feet: Feet;
   private done = false;
   constructor(private gaitDescriptor: number[][],
     private container: AFRAME.Entity, private parts: CritterParts,
-    private wall: Wall, private spawnTimeMs: number) {
+    private wall: Wall, private spawnTimeMs: number, private score: Score,
+    private eText: EphemeralText) {
     this.feet = new Feet(0.12, 600, container, parts.body);
-    console.log(`number of feet: ${parts.feet.length}`);
     for (const [i, f] of parts.feet.entries()) {
       const gaitIndex = i % this.gaitDescriptor.length;
       this.feet.add(new Foot(new Pod(this.gaitDescriptor[gaitIndex]), f, this.wall));
@@ -32,9 +32,20 @@ export class Critter {
 
   remove() { this.container.remove(); }
 
+  private worldPosition = new AFRAME.THREE.Vector3();
+  squash(worldPosition: any) {
+    this.container.object3D.getWorldPosition(this.worldPosition);
+    if (worldPosition.distanceTo(this.worldPosition) < 0.2) {
+
+      this.score.add(500);
+      this.eText.addText("+500", this.worldPosition.x, this.worldPosition.y, this.worldPosition.z)
+      this.done = true;
+    }
+  }
+
   setPositions(timeMs: number) {
     this.feet.setPositions(timeMs - this.spawnTimeMs);
-    this.done = this.feet.isDone();
+    this.done = this.done || this.feet.isDone();
   }
 };
 

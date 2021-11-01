@@ -1,4 +1,5 @@
 import * as AFRAME from "aframe";
+import { CritterSource } from "./critterSource";
 
 import { Debug } from "./debug";
 import { Painter } from "./painter";
@@ -49,7 +50,7 @@ export class Brush {
   private readonly kBrushRadius = 0.1;
 
   constructor(container: AFRAME.Entity, private leftHand, private rightHand,
-    private wall: Wall) {
+    private wall: Wall, private critters: CritterSource) {
     this.leftBrush = this.makeBrush(container);
     this.rightBrush = this.makeBrush(container);
     this.leftMinusRight = new AFRAME.THREE.Vector3();
@@ -78,6 +79,9 @@ export class Brush {
       if (vec.z < this.wall.wallZ) {
         this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
         vec.z = this.wall.wallZ;
+        for (const c of this.critters.getCritters()) {
+          c.squash(this.brushPosition);
+        }
       } else {
         const d = this.kBrushRadius - (vec.z - this.wall.wallZ);
         // c^2 + d^2 = r^2
@@ -87,7 +91,6 @@ export class Brush {
         if (c > 0) {
           this.wall.paint(this.brushPosition, c, brush);
         }
-
       }
     }
   }
