@@ -6,26 +6,23 @@ import { Pod } from "./pod";
 import { Wall } from "./wall";
 
 export class CritterParts {
-  readonly feet: AFRAME.Entity[] = [];
-  constructor(readonly body: AFRAME.Entity) { }
+  readonly feet: any[] = [];  // THREE.Object3D
+  constructor(readonly body: any) { }  // THREE.Object3D
 }
 
 export class Critter {
   public static walkingGait = [[9, 7], [1, 7, 8]];
 
-  private footEntities: AFRAME.Entity[] = [];
+  private footObjects: any[] = [];  // THREE.Object3D
   private feet: Feet;
   constructor(private gaitDescriptor: number[][],
     private container: AFRAME.Entity, private parts: CritterParts,
     private wall: Wall, private spawnTimeMs: number) {
-
-    container.appendChild(parts.body);
     this.feet = new Feet(0.12, 600, container, parts.body);
-
+    console.log(`number of feet: ${parts.feet.length}`);
     for (const [i, f] of parts.feet.entries()) {
       const gaitIndex = i % this.gaitDescriptor.length;
       this.feet.add(new Foot(new Pod(this.gaitDescriptor[gaitIndex]), f));
-      container.appendChild(f);
     }
     // body.object3D.position.z = wall.wallZ;
   }
