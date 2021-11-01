@@ -104,10 +104,11 @@ class PaintBrush {
 }
 exports.PaintBrush = PaintBrush;
 class Brush {
-    constructor(container, leftHand, rightHand, wall) {
+    constructor(container, leftHand, rightHand, wall, critters) {
         this.leftHand = leftHand;
         this.rightHand = rightHand;
         this.wall = wall;
+        this.critters = critters;
         this.kBrushRadius = 0.1;
         this.brushPosition = new AFRAME.THREE.Vector3();
         this.leftBrush = this.makeBrush(container);
@@ -134,6 +135,9 @@ class Brush {
             if (vec.z < this.wall.wallZ) {
                 this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
                 vec.z = this.wall.wallZ;
+                for (const c of this.critters.getCritters()) {
+                    c.squash(this.brushPosition);
+                }
             }
             else {
                 const d = this.kBrushRadius - (vec.z - this.wall.wallZ);
@@ -259,12 +263,32 @@ exports.Can = Can;
 /***/ }),
 
 /***/ 918:
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Critter = exports.CritterParts = void 0;
+const AFRAME = __importStar(__webpack_require__(449));
 const feet_1 = __webpack_require__(518);
 const foot_1 = __webpack_require__(410);
 const pod_1 = __webpack_require__(629);
@@ -276,16 +300,17 @@ class CritterParts {
 }
 exports.CritterParts = CritterParts;
 class Critter {
-    constructor(gaitDescriptor, container, parts, wall, spawnTimeMs) {
+    constructor(gaitDescriptor, container, parts, wall, spawnTimeMs, score, eText) {
         this.gaitDescriptor = gaitDescriptor;
         this.container = container;
         this.parts = parts;
         this.wall = wall;
         this.spawnTimeMs = spawnTimeMs;
-        this.footObjects = []; // THREE.Object3D
+        this.score = score;
+        this.eText = eText;
         this.done = false;
+        this.worldPosition = new AFRAME.THREE.Vector3();
         this.feet = new feet_1.Feet(0.12, 600, container, parts.body);
-        console.log(`number of feet: ${parts.feet.length}`);
         for (const [i, f] of parts.feet.entries()) {
             const gaitIndex = i % this.gaitDescriptor.length;
             this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[gaitIndex]), f, this.wall));
@@ -294,9 +319,17 @@ class Critter {
     }
     isDone() { return this.done; }
     remove() { this.container.remove(); }
+    squash(worldPosition) {
+        this.container.object3D.getWorldPosition(this.worldPosition);
+        if (worldPosition.distanceTo(this.worldPosition) < 0.2) {
+            this.score.add(500);
+            this.eText.addText("+500", this.worldPosition.x, this.worldPosition.y, this.worldPosition.z);
+            this.done = true;
+        }
+    }
     setPositions(timeMs) {
         this.feet.setPositions(timeMs - this.spawnTimeMs);
-        this.done = this.feet.isDone();
+        this.done = this.done || this.feet.isDone();
     }
 }
 exports.Critter = Critter;
@@ -459,12 +492,17 @@ exports.CritterSource = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 const critter_1 = __webpack_require__(918);
 class CritterSource {
-    constructor(wall, assetLibrary) {
+    constructor(wall, assetLibrary, score, eText) {
         this.wall = wall;
         this.assetLibrary = assetLibrary;
+        this.score = score;
+        this.eText = eText;
         this.timeToNextCritterMs = 1000;
         this.critters = [];
         this.lizard = null;
+    }
+    getCritters() {
+        return this.critters;
     }
     makeFoot(x, z, container) {
         const foot = document.createElement('a-cylinder');
@@ -477,7 +515,6 @@ class CritterSource {
     extractObject(obj, container) {
         // const ent = document.createElement('a-entity');
         obj.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#0f0' });
-        console.log(obj.position);
         // obj.parent.remove(obj);
         // ent.object3D = obj;
         // container.appendChild(ent);
@@ -485,31 +522,21 @@ class CritterSource {
     makeTurtle(container, spawnTime, scene) {
         return __awaiter(this, void 0, void 0, function* () {
             this.lizard = document.createElement('a-entity');
-            this.lizard.setAttribute('gltf-model', `#${this.assetLibrary.getId('obj/lizard.glb')}`);
-            console.log('Making a turtle');
+            this.lizard.setAttribute('gltf-model', `#${this.assetLibrary.getId('obj/lizard.gltf')}`);
             container.appendChild(this.lizard);
             const parts = new critter_1.CritterParts(this.lizard);
             return new Promise((resolve, reject) => {
-                console.log(`Number of feet A ${parts.feet.length}`);
-                // parts.feet.push(this.makeFoot(0.07, 0.03, container));
-                // parts.feet.push(this.makeFoot(-0.07, 0.03, container));
-                // parts.feet.push(this.makeFoot(-0.07, -0.03, container));
-                // parts.feet.push(this.makeFoot(0.07, -0.03, container));
-                console.log(`Number of feet B ${parts.feet.length}`);
                 this.lizard.addEventListener('model-loaded', () => {
-                    console.log('Loaded');
                     const obj = this.lizard.getObject3D('mesh');
                     obj.traverse(node => {
-                        console.log(`name: ${node.name}`);
                         const m = (/foo[tr]-([\d+])/i).exec(node.name);
                         if (m && m.length > 0) {
-                            console.log(`m: ${JSON.stringify(m)}`);
                             const i = parseInt(m[1]);
                             this.extractObject(node, this.lizard);
                             parts.feet[i] = node;
                         }
                     });
-                    const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall, spawnTime);
+                    const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall, spawnTime, this.score, this.eText);
                     resolve(critter);
                 });
                 scene.appendChild(container);
@@ -525,7 +552,6 @@ class CritterSource {
                 turtleEnt.setAttribute('position', `0 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
                 turtleEnt.setAttribute('rotation', '90 0 0');
                 const turtle = yield this.makeTurtle(turtleEnt, timeMs, document.querySelector('a-scene'));
-                console.log('Got a turtle');
                 this.critters.push(turtle);
             }
             for (const critter of this.critters) {
@@ -713,12 +739,12 @@ class Foot {
         this.pod = pod;
         this.foot = foot;
         this.wall = wall;
+        this.color = null;
         this.worldPosition = new AFRAME.THREE.Vector3();
         this.initialPosition = new AFRAME.THREE.Vector3();
         this.initialPosition.copy(foot.position);
-        console.log(foot.position);
     }
-    getSupply() { return 1; }
+    getSupply() { return this.color != null ? 1 : 0; }
     removeSupply(n) { }
     setPosition(p, gaitM) {
         const [x, dx] = this.pod.getXdX(p);
@@ -727,7 +753,14 @@ class Foot {
         if (dx < 0) {
             this.foot.position.y += Foot.kLift;
             this.foot.getWorldPosition(this.worldPosition);
-            this.wall.paint(this.worldPosition, 0.05, this);
+            const wallColor = this.wall.getColor(this.worldPosition);
+            if (wallColor === null && this.color !== null) {
+                this.wall.paint(this.worldPosition, 0.05, this);
+            }
+            else if (wallColor !== null && this.color != wallColor) {
+                this.color = wallColor;
+                // TODO: Change texture.
+            }
         }
     }
 }
@@ -786,18 +819,24 @@ var critters = null;
 var eText = null;
 var score;
 var cans = [];
+function makeRoom(scene, assetLibrary) {
+    const model = document.createElement('a-entity');
+    model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/room.gltf')}`);
+    scene.appendChild(model);
+}
 AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
             debug_1.Debug.init();
             const scene = document.querySelector('a-scene');
             const assetLibrary = new assetLibrary_1.AssetLibrary(document.querySelector('a-assets'));
+            makeRoom(scene, assetLibrary);
             eText = new ephemeralText_1.EphemeralText(scene);
             eText.addText("Let's go!", 0, 1.5, -0.6);
             score = new score_1.Score(document.querySelector('#score'));
             wall = new wall_1.Wall(eText, score);
-            critters = new critterSource_1.CritterSource(wall, assetLibrary);
-            brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall);
+            critters = new critterSource_1.CritterSource(wall, assetLibrary, score, eText);
+            brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall, critters);
             const canEntity = document.createElement('a-entity');
             canEntity.setAttribute('position', '-0.5 0 -0.2');
             scene.appendChild(canEntity);
@@ -876,11 +915,6 @@ body.innerHTML = `
 <a-entity id='world'>
 </a-entity>
 <a-entity id=score position='0 2.4 -0.8'></a-entity>
-<a-box width=20 height=0.2 depth=0.03 position='0 0.1 -0.6'></a-box> 
-<a-box width=20 height=0.2 depth=0.03 position='0 2.5 -0.6'></a-box> 
-<a-box width=9 height=2.2 depth=0.03 position='-5.5 1.3 -0.6'></a-box> 
-<a-box width=9 height=2.2 depth=0.03 position=' 5.5 1.3 -0.6'></a-box> 
-
 <a-entity id='player'>
   <a-camera id="camera" position="0 1.6 0">
     <a-entity light="type:point; intensity: 0.1; distance: 4; decay: 2" position="0 0.1 -0.1">
@@ -1116,23 +1150,30 @@ class Wall {
         return (this.kWidth - i - 0.5) / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
             + this.wallPosition.y;
     }
+    getIJForPosition(brushPosition) {
+        this.tmpPosition.copy(brushPosition);
+        this.tmpPosition.sub(this.wallPosition);
+        this.tmpPosition.multiplyScalar(1 / this.kWallWidthMeters);
+        this.tmpPosition.x += 0.5;
+        this.tmpPosition.y = 0.5 - this.tmpPosition.y;
+        if (this.tmpPosition.x < 0 || this.tmpPosition.x > 1 ||
+            this.tmpPosition.y < 0 || this.tmpPosition.y > 1) {
+            return [null, null];
+        }
+        // brushPosition is now [0,1]
+        // x = 0.5 * 1 / kWidth + i * 1/kWidth
+        // x - 0.5 / kWidth = i / kWidth
+        // kWidth * x - 0.5 = i
+        const ci = (this.kWidth * this.tmpPosition.x) - 0.5;
+        const cj = (this.kWidth * this.tmpPosition.y) - 0.5;
+        return [ci, cj];
+    }
     paint(brushPosition, radius, brush) {
         try {
-            this.tmpPosition.copy(brushPosition);
-            this.tmpPosition.sub(this.wallPosition);
-            this.tmpPosition.multiplyScalar(1 / this.kWallWidthMeters);
-            this.tmpPosition.x += 0.5;
-            this.tmpPosition.y = 0.5 - this.tmpPosition.y;
-            if (this.tmpPosition.x < 0 || this.tmpPosition.x > 1 ||
-                this.tmpPosition.y < 0 || this.tmpPosition.y > 1) {
+            const [ci, cj] = this.getIJForPosition(brushPosition);
+            if (ci === null) {
                 return;
             }
-            // brushPosition is now [0,1]
-            // x = 0.5 * 1 / kWidth + i * 1/kWidth
-            // x - 0.5 / kWidth = i / kWidth
-            // kWidth * x - 0.5 = i
-            const ci = (this.kWidth * this.tmpPosition.x) - 0.5;
-            const cj = (this.kWidth * this.tmpPosition.y) - 0.5;
             const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
             let hasChanges = false;
             let deltaPoints = 0;
@@ -1176,6 +1217,19 @@ class Wall {
         catch (e) {
             debug_1.Debug.set(`error: ${e}`);
         }
+    }
+    getColor(brushPosition) {
+        const [ci, cj] = this.getIJForPosition(brushPosition);
+        if (ci === null) {
+            return null;
+        }
+        const i = Math.round(ci);
+        const j = Math.round(cj);
+        const colorNumber = this.blocks[i + j * this.kWidth];
+        if (colorNumber === 0) {
+            return null;
+        }
+        return this.colorMap.get(colorNumber);
     }
 }
 exports.Wall = Wall;
