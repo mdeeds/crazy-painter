@@ -44,12 +44,12 @@ AFRAME.registerComponent("go", {
       let dx = 0;
       let dz = 0;
       switch (ev.code) {
-        case "KeyI": dy = 0.1; break;
-        case "KeyK": dy = -0.1; break;
-        case "KeyJ": dx = -0.1; break;
-        case "KeyL": dx = 0.1; break;
-        case "KeyU": dz = -0.1; break;
-        case "KeyO": dz = 0.1; break;
+        case "KeyI": dy = 0.03; break;
+        case "KeyK": dy = -0.03; break;
+        case "KeyJ": dx = -0.03; break;
+        case "KeyL": dx = 0.03; break;
+        case "KeyU": dz = -0.05; break;
+        case "KeyO": dz = 0.05; break;
       }
       const rh = document.querySelector('#rightHand');
       rh.object3D.position.x += dx;
