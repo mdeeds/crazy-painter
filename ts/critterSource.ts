@@ -74,7 +74,7 @@ export class CritterSource {
     if (this.timeToNextCritterMs <= 0) {
       this.timeToNextCritterMs = 5000;
       const turtleEnt = document.createElement('a-entity');
-      turtleEnt.setAttribute('position', `1 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
+      turtleEnt.setAttribute('position', `0 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
       turtleEnt.setAttribute('rotation', '90 0 0');
       const turtle = await this.makeTurtle(turtleEnt, timeMs, document.querySelector('a-scene'));
       console.log('Got a turtle');
@@ -83,6 +83,12 @@ export class CritterSource {
 
     for (const critter of this.critters) {
       critter.setPositions(timeMs);
+    }
+    for (let i = 0; i < this.critters.length; ++i) {
+      if (this.critters[i].isDone()) {
+        this.critters[i].remove();
+        this.critters.splice(i, 1);
+      }
     }
   }
 }

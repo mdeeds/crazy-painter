@@ -15,6 +15,7 @@ export class Critter {
 
   private footObjects: any[] = [];  // THREE.Object3D
   private feet: Feet;
+  private done = false;
   constructor(private gaitDescriptor: number[][],
     private container: AFRAME.Entity, private parts: CritterParts,
     private wall: Wall, private spawnTimeMs: number) {
@@ -27,8 +28,13 @@ export class Critter {
     // body.object3D.position.z = wall.wallZ;
   }
 
+  isDone() { return this.done; }
+
+  remove() { this.container.remove(); }
+
   setPositions(timeMs: number) {
     this.feet.setPositions(timeMs - this.spawnTimeMs);
+    this.done = this.feet.isDone();
   }
 };
 
