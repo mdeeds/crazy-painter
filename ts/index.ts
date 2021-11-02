@@ -16,21 +16,28 @@ var eText: EphemeralText = null;
 var score: Score;
 var cans: Can[] = [];
 
+function makeRoom(scene: AFRAME.Entity, assetLibrary: AssetLibrary) {
+  const model = document.createElement('a-entity');
+  model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/room.gltf')}`);
+  scene.appendChild(model);
+}
+
 AFRAME.registerComponent("go", {
   init: async function () {
     Debug.init();
     const scene = document.querySelector('a-scene');
     const assetLibrary = new AssetLibrary(document.querySelector('a-assets'));
+    makeRoom(scene, assetLibrary);
     eText = new EphemeralText(scene);
     eText.addText("Let's go!", 0, 1.5, -0.6);
     score = new Score(document.querySelector('#score'));
 
     wall = new Wall(eText, score);
-    critters = new CritterSource(wall, assetLibrary);
+    critters = new CritterSource(wall, assetLibrary, score, eText);
 
     brush = new Brush(document.querySelector('#player'),
       document.querySelector('#leftHand').object3D,
-      document.querySelector('#rightHand').object3D, wall);
+      document.querySelector('#rightHand').object3D, wall, critters);
 
     const canEntity = document.createElement('a-entity');
     canEntity.setAttribute('position', '-0.5 0 -0.2');
@@ -44,12 +51,12 @@ AFRAME.registerComponent("go", {
       let dx = 0;
       let dz = 0;
       switch (ev.code) {
-        case "KeyI": dy = 0.1; break;
-        case "KeyK": dy = -0.1; break;
-        case "KeyJ": dx = -0.1; break;
-        case "KeyL": dx = 0.1; break;
-        case "KeyU": dz = -0.1; break;
-        case "KeyO": dz = 0.1; break;
+        case "KeyI": dy = 0.03; break;
+        case "KeyK": dy = -0.03; break;
+        case "KeyJ": dx = -0.03; break;
+        case "KeyL": dx = 0.03; break;
+        case "KeyU": dz = -0.05; break;
+        case "KeyO": dz = 0.05; break;
       }
       const rh = document.querySelector('#rightHand');
       rh.object3D.position.x += dx;
@@ -98,11 +105,6 @@ body.innerHTML = `
 <a-entity id='world'>
 </a-entity>
 <a-entity id=score position='0 2.4 -0.8'></a-entity>
-<a-box width=20 height=0.2 depth=0.03 position='0 0.1 -0.6'></a-box> 
-<a-box width=20 height=0.2 depth=0.03 position='0 2.5 -0.6'></a-box> 
-<a-box width=9 height=2.2 depth=0.03 position='-5.5 1.3 -0.6'></a-box> 
-<a-box width=9 height=2.2 depth=0.03 position=' 5.5 1.3 -0.6'></a-box> 
-
 <a-entity id='player'>
   <a-camera id="camera" position="0 1.6 0">
     <a-entity light="type:point; intensity: 0.1; distance: 4; decay: 2" position="0 0.1 -0.1">

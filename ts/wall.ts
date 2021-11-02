@@ -1,6 +1,6 @@
-import { Brush, PaintBrush } from "./brush";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
+import { Painter } from "./painter";
 import { Score } from "./score";
 
 export class Wall {
@@ -77,22 +77,32 @@ export class Wall {
       + this.wallPosition.y;
   }
 
-  public paint(brushPosition: any, radius: number, brush: PaintBrush) {
+  private getIJForPosition(brushPosition: any): number[] {
+    this.tmpPosition.copy(brushPosition);
+    this.tmpPosition.sub(this.wallPosition);
+    this.tmpPosition.multiplyScalar(1 / this.kWallWidthMeters);
+    this.tmpPosition.x += 0.5;
+    this.tmpPosition.y = 0.5 - this.tmpPosition.y;
+    if (this.tmpPosition.x < 0 || this.tmpPosition.x > 1 ||
+      this.tmpPosition.y < 0 || this.tmpPosition.y > 1) {
+      return [null, null];
+    }
+    // brushPosition is now [0,1]
+    // x = 0.5 * 1 / kWidth + i * 1/kWidth
+    // x - 0.5 / kWidth = i / kWidth
+    // kWidth * x - 0.5 = i
+    const ci = (this.kWidth * this.tmpPosition.x) - 0.5;
+    const cj = (this.kWidth * this.tmpPosition.y) - 0.5;
+    return [ci, cj];
+  }
+
+  private tmpPosition = new AFRAME.THREE.Vector3();
+  public paint(brushPosition: any, radius: number, brush: Painter) {
     try {
-      brushPosition.sub(this.wallPosition);
-      brushPosition.multiplyScalar(1 / this.kWallWidthMeters);
-      brushPosition.x += 0.5;
-      brushPosition.y = 0.5 - brushPosition.y;
-      if (brushPosition.x < 0 || brushPosition.x > 1 ||
-        brushPosition.y < 0 || brushPosition.y > 1) {
+      const [ci, cj] = this.getIJForPosition(brushPosition);
+      if (ci === null) {
         return;
       }
-      // brushPosition is now [0,1]
-      // x = 0.5 * 1 / kWidth + i * 1/kWidth
-      // x - 0.5 / kWidth = i / kWidth
-      // kWidth * x - 0.5 = i
-      const ci = (this.kWidth * brushPosition.x) - 0.5;
-      const cj = (this.kWidth * brushPosition.y) - 0.5;
       const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
       let hasChanges = false;
       let deltaPoints = 0;
@@ -137,5 +147,19 @@ export class Wall {
     } catch (e) {
       Debug.set(`error: ${e}`);
     }
+  }
+
+  public getColor(brushPosition: any): string {
+    const [ci, cj] = this.getIJForPosition(brushPosition);
+    if (ci === null) {
+      return null;
+    }
+    const i = Math.round(ci);
+    const j = Math.round(cj);
+    const colorNumber = this.blocks[i + j * this.kWidth];
+    if (colorNumber === 0) {
+      return null;
+    }
+    return this.colorMap.get(colorNumber);
   }
 }
