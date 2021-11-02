@@ -14,12 +14,10 @@ export class Can {
 
   private buildMaterialCan(): AFRAME.Entity {
     const model = document.createElement('a-entity');
-    model.setAttribute('obj-model',
-      `obj:#${this.assetLibrary.getId('obj/bucket.obj')};` +
-      `mtl:#${this.assetLibrary.getId('obj/bucket.mtl')}`);
+    model.setAttribute('gltf-model',
+      `#${this.assetLibrary.getId('obj/bucket.gltf')}`);
     model.setAttribute('scale', '0.1 0.1 0.1');
     model.setAttribute('position', '0 0.125 0');
-
 
     model.addEventListener('model-loaded', () => {
       // Grab the mesh / scene.
