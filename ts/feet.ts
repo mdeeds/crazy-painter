@@ -1,6 +1,7 @@
 import * as AFRAME from "aframe";
 
 import { Foot } from "./foot";
+import { Wall } from "./wall";
 
 export class Feet {
   private feet: Foot[] = [];
@@ -10,7 +11,8 @@ export class Feet {
   // `gaitM` : Distance traveled in one cycle of the gait.
   // `gaitMS` : Duration of the gait in milliseconds
   constructor(private gaitM: number, private gaitMS: number,
-    private container: AFRAME.Entity, private body: AFRAME.Entity) { }
+    private container: AFRAME.Entity, private body: AFRAME.Entity,
+    private wall: Wall) { }
   add(foot: Foot) {
     this.feet.push(foot);
   }
@@ -24,9 +26,9 @@ export class Feet {
     }
     const seconds = timeMs / 1000;
     const mps = this.gaitM / (this.gaitMS / 1000);
-    const newX = 1.5 - mps * seconds;
+    const newX = this.wall.kWallWidthMeters / 2 + 0.5 - mps * seconds;
     this.container.object3D.position.x = newX;
-    if (newX < -1.5) {
+    if (newX < -this.wall.kWallWidthMeters / 2 - 0.5) {
       this.done = true;
     }
   }

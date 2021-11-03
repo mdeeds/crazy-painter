@@ -20,7 +20,7 @@ export class Critter {
     private container: AFRAME.Entity, private parts: CritterParts,
     private wall: Wall, private spawnTimeMs: number, private score: Score,
     private eText: EphemeralText) {
-    this.feet = new Feet(0.12, 600, container, parts.body);
+    this.feet = new Feet(0.12, 600, container, parts.body, this.wall);
     for (const [i, f] of parts.feet.entries()) {
       const gaitIndex = i % this.gaitDescriptor.length;
       this.feet.add(new Foot(new Pod(this.gaitDescriptor[gaitIndex]), f, this.wall));

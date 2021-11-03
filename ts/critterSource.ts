@@ -22,15 +22,6 @@ export class CritterSource {
     return this.critters;
   }
 
-  private makeFoot(x: number, z: number, container: AFRAME.Entity): any {
-    const foot = document.createElement('a-cylinder');
-    foot.setAttribute('radius', '0.01');
-    foot.setAttribute('height', '0.01');
-    foot.object3D.position.set(x, 0.02, z);
-    container.appendChild(foot);
-    return foot.object3D;
-  }
-
   private extractObject(obj: any, container: AFRAME.Entity) {
     // const ent = document.createElement('a-entity');
     obj.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#0f0' });
@@ -72,7 +63,9 @@ export class CritterSource {
       this.timeToNextCritterMs = 5000;
       const turtleEnt = document.createElement('a-entity');
       turtleEnt.setAttribute('position',
-        `0 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
+        `0` +
+        ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
+        ` ${this.wall.wallZ}`);
       turtleEnt.setAttribute('rotation', '90 0 0');
       const turtle = await this.makeTurtle(
         turtleEnt, timeMs, document.querySelector('a-scene'));

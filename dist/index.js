@@ -309,7 +309,7 @@ class Critter {
         this.eText = eText;
         this.done = false;
         this.worldPosition = new AFRAME.THREE.Vector3();
-        this.feet = new feet_1.Feet(0.12, 600, container, parts.body);
+        this.feet = new feet_1.Feet(0.12, 600, container, parts.body, this.wall);
         for (const [i, f] of parts.feet.entries()) {
             const gaitIndex = i % this.gaitDescriptor.length;
             this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[gaitIndex]), f, this.wall));
@@ -503,14 +503,6 @@ class CritterSource {
     getCritters() {
         return this.critters;
     }
-    makeFoot(x, z, container) {
-        const foot = document.createElement('a-cylinder');
-        foot.setAttribute('radius', '0.01');
-        foot.setAttribute('height', '0.01');
-        foot.object3D.position.set(x, 0.02, z);
-        container.appendChild(foot);
-        return foot.object3D;
-    }
     extractObject(obj, container) {
         // const ent = document.createElement('a-entity');
         obj.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#0f0' });
@@ -548,7 +540,9 @@ class CritterSource {
             if (this.timeToNextCritterMs <= 0) {
                 this.timeToNextCritterMs = 5000;
                 const turtleEnt = document.createElement('a-entity');
-                turtleEnt.setAttribute('position', `0 ${Math.random() * 2 + 0.2} ${this.wall.wallZ}`);
+                turtleEnt.setAttribute('position', `0` +
+                    ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
+                    ` ${this.wall.wallZ}`);
                 turtleEnt.setAttribute('rotation', '90 0 0');
                 const turtle = yield this.makeTurtle(turtleEnt, timeMs, document.querySelector('a-scene'));
                 this.critters.push(turtle);
@@ -675,11 +669,12 @@ exports.Feet = void 0;
 class Feet {
     // `gaitM` : Distance traveled in one cycle of the gait.
     // `gaitMS` : Duration of the gait in milliseconds
-    constructor(gaitM, gaitMS, container, body) {
+    constructor(gaitM, gaitMS, container, body, wall) {
         this.gaitM = gaitM;
         this.gaitMS = gaitMS;
         this.container = container;
         this.body = body;
+        this.wall = wall;
         this.feet = [];
         this.done = false;
     }
@@ -694,9 +689,9 @@ class Feet {
         }
         const seconds = timeMs / 1000;
         const mps = this.gaitM / (this.gaitMS / 1000);
-        const newX = 1.5 - mps * seconds;
+        const newX = this.wall.kWallWidthMeters / 2 + 0.5 - mps * seconds;
         this.container.object3D.position.x = newX;
-        if (newX < -1.5) {
+        if (newX < -this.wall.kWallWidthMeters / 2 - 0.5) {
             this.done = true;
         }
     }
@@ -1147,6 +1142,7 @@ class Wall {
         this.canvas.width = 1024;
         this.canvas.height = 1024;
         this.wallZ = -1;
+        this.wallY = 1.2;
         this.kWallWidthMeters = level.width() * this.kMetersPerBlock;
         this.kWallHeightMeters = level.height() * this.kMetersPerBlock;
         this.wallTex = new AFRAME.THREE.CanvasTexture(this.canvas);
@@ -1154,7 +1150,7 @@ class Wall {
             map: this.wallTex, transparent: true
         });
         const wallGeometry = new AFRAME.THREE.PlaneGeometry(1024 / this.kPixelsPerBlock * this.kMetersPerBlock, 1024 / this.kPixelsPerBlock * this.kMetersPerBlock);
-        this.wallPosition = new AFRAME.THREE.Vector3(0, 1.2, this.wallZ);
+        this.wallPosition = new AFRAME.THREE.Vector3(0, this.wallY, this.wallZ);
         {
             const centerPx = this.kPixelsPerBlock * level.width() / 2;
             const fromLeftM = this.kMetersPerBlock * centerPx / this.kPixelsPerBlock;

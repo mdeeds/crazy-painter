@@ -8,13 +8,14 @@ export class Wall {
   private canvas: HTMLCanvasElement = null;
   private wallTex = null;
   readonly wallZ: number;
+  readonly wallY: number;
   private kMetersPerBlock = 0.05;
   private kPixelsPerBlock = 32;
 
   private blocks: Uint8ClampedArray;
   private colorMap = new Map<number, string>();
-  private readonly kWallWidthMeters: number;
-  private readonly kWallHeightMeters: number;
+  readonly kWallWidthMeters: number;
+  readonly kWallHeightMeters: number;
   private readonly wallObject = null;
   private wallPosition = null;
 
@@ -26,6 +27,7 @@ export class Wall {
     this.canvas.width = 1024;
     this.canvas.height = 1024;
     this.wallZ = -1;
+    this.wallY = 1.2;
 
     this.kWallWidthMeters = level.width() * this.kMetersPerBlock;
     this.kWallHeightMeters = level.height() * this.kMetersPerBlock;
@@ -37,7 +39,7 @@ export class Wall {
     const wallGeometry = new AFRAME.THREE.PlaneGeometry(
       1024 / this.kPixelsPerBlock * this.kMetersPerBlock,
       1024 / this.kPixelsPerBlock * this.kMetersPerBlock);
-    this.wallPosition = new AFRAME.THREE.Vector3(0, 1.2, this.wallZ);
+    this.wallPosition = new AFRAME.THREE.Vector3(0, this.wallY, this.wallZ);
 
     {
       const centerPx = this.kPixelsPerBlock * level.width() / 2;
