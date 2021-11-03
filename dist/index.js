@@ -812,6 +812,7 @@ const score_1 = __webpack_require__(537);
 const wall_1 = __webpack_require__(649);
 const assetLibrary_1 = __webpack_require__(673);
 const critterSource_1 = __webpack_require__(107);
+const levelSpec_1 = __webpack_require__(811);
 var brush = null;
 var wall = null;
 var critters = null;
@@ -833,7 +834,7 @@ AFRAME.registerComponent("go", {
             eText = new ephemeralText_1.EphemeralText(scene);
             eText.addText("Let's go!", 0, 1.5, -0.6);
             score = new score_1.Score(document.querySelector('#score'));
-            wall = new wall_1.Wall(eText, score);
+            wall = new wall_1.Wall(new levelSpec_1.SmallLevel(), eText, score);
             critters = new critterSource_1.CritterSource(wall, assetLibrary, score, eText);
             brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall, critters);
             const canEntity = document.createElement('a-entity');
@@ -927,6 +928,45 @@ body.innerHTML = `
 </a-scene>
 `;
 //# sourceMappingURL=index.js.map
+
+/***/ }),
+
+/***/ 811:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SmallLevel = exports.LargeLevel = void 0;
+class LargeLevel {
+    constructor() {
+        this.colorMapInternal = new Map();
+        this.colorMapInternal.set(0, '#444');
+        this.colorMapInternal.set(1, '#f80');
+    }
+    width() { return 30; }
+    height() { return 30; }
+    paintColorNumber(i, j) { return 1; }
+    getColorMap() {
+        return this.colorMapInternal;
+    }
+}
+exports.LargeLevel = LargeLevel;
+class SmallLevel {
+    constructor() {
+        this.colorMapInternal = new Map();
+        this.colorMapInternal.set(0, '#444');
+        this.colorMapInternal.set(1, '#4f0');
+    }
+    width() { return 10; }
+    height() { return 10; }
+    paintColorNumber(i, j) { return 1; }
+    getColorMap() {
+        return this.colorMapInternal;
+    }
+}
+exports.SmallLevel = SmallLevel;
+//# sourceMappingURL=levelSpec.js.map
 
 /***/ }),
 
@@ -1088,15 +1128,15 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Wall = void 0;
 const debug_1 = __webpack_require__(756);
 class Wall {
-    constructor(eText, score) {
+    constructor(level, eText, score) {
+        this.level = level;
         this.eText = eText;
         this.score = score;
         this.canvas = null;
         this.wallTex = null;
-        this.blocks = [];
+        this.kMetersPerBlock = 0.05;
+        this.kPixelsPerBlock = 32;
         this.colorMap = new Map();
-        this.kWidth = 30;
-        this.kWallWidthMeters = 2;
         this.wallObject = null;
         this.wallPosition = null;
         this.tmpPosition = new AFRAME.THREE.Vector3();
@@ -1106,34 +1146,38 @@ class Wall {
         this.canvas = document.createElement('canvas');
         this.canvas.width = 1024;
         this.canvas.height = 1024;
-        this.wallZ = -0.8;
+        this.wallZ = -1;
+        this.kWallWidthMeters = level.width() * this.kMetersPerBlock;
+        this.kWallHeightMeters = level.height() * this.kMetersPerBlock;
         this.wallTex = new AFRAME.THREE.CanvasTexture(this.canvas);
         const wallMaterial = new AFRAME.THREE.MeshBasicMaterial({
             map: this.wallTex, transparent: true
         });
-        const wallGeometry = new AFRAME.THREE.PlaneGeometry(this.kWallWidthMeters, this.kWallWidthMeters);
+        const wallGeometry = new AFRAME.THREE.PlaneGeometry(1024 / this.kPixelsPerBlock * this.kMetersPerBlock, 1024 / this.kPixelsPerBlock * this.kMetersPerBlock);
         this.wallPosition = new AFRAME.THREE.Vector3(0, 1.2, this.wallZ);
-        wallGeometry.translate(this.wallPosition.x, this.wallPosition.y, this.wallPosition.z);
+        {
+            const centerPx = this.kPixelsPerBlock * level.width() / 2;
+            const fromLeftM = this.kMetersPerBlock * centerPx / this.kPixelsPerBlock;
+            const centerM = this.kMetersPerBlock * 512 / this.kPixelsPerBlock;
+            const deltaM = (centerM - fromLeftM);
+            wallGeometry.translate(this.wallPosition.x + deltaM, this.wallPosition.y - deltaM, this.wallPosition.z);
+        }
         const wallMesh = new AFRAME.THREE.Mesh(wallGeometry, wallMaterial);
         wall.object3D = wallMesh;
         scene.appendChild(wall);
-        for (let i = 0; i < this.kWidth * this.kWidth; ++i) {
-            this.blocks.push(0);
-        }
-        this.colorMap.set(0, '#840');
-        this.colorMap.set(1, '#f80');
+        this.blocks = new Uint8ClampedArray(level.width() * level.height());
+        this.colorMap = level.getColorMap();
         this.updateCanvas();
     }
     updateCanvas() {
         const ctx = this.canvas.getContext('2d');
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        const kWidth = 30;
-        const boxWidth = this.canvas.width / kWidth;
+        const boxWidth = this.kPixelsPerBlock;
         for (const [colorIndex, color] of this.colorMap.entries()) {
             ctx.fillStyle = color;
-            for (let i = 0; i < kWidth; ++i) {
-                for (let j = 0; j < kWidth; ++j) {
-                    if (this.blocks[i + j * this.kWidth] === colorIndex) {
+            for (let i = 0; i < this.level.width(); ++i) {
+                for (let j = 0; j < this.level.height(); ++j) {
+                    if (this.blocks[i + j * this.level.width()] === colorIndex) {
                         ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1, boxWidth - 2, boxWidth - 2);
                     }
                 }
@@ -1142,11 +1186,13 @@ class Wall {
         this.wallTex.needsUpdate = true;
     }
     worldXForI(i) {
-        return (i + 0.5) / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
+        return (i + 0.5) /
+            this.level.width() * this.kWallWidthMeters - this.kWallWidthMeters / 2
             + this.wallPosition.x;
     }
-    worldYForJ(i) {
-        return (this.kWidth - i - 0.5) / this.kWidth * this.kWallWidthMeters - this.kWallWidthMeters / 2
+    worldYForJ(j) {
+        return (this.level.height() - j - 0.5) /
+            this.level.height() * this.kWallHeightMeters - this.kWallHeightMeters / 2
             + this.wallPosition.y;
     }
     getIJForPosition(brushPosition) {
@@ -1163,8 +1209,8 @@ class Wall {
         // x = 0.5 * 1 / kWidth + i * 1/kWidth
         // x - 0.5 / kWidth = i / kWidth
         // kWidth * x - 0.5 = i
-        const ci = (this.kWidth * this.tmpPosition.x) - 0.5;
-        const cj = (this.kWidth * this.tmpPosition.y) - 0.5;
+        const ci = (this.level.width() * this.tmpPosition.x) - 0.5;
+        const cj = (this.level.height() * this.tmpPosition.y) - 0.5;
         return [ci, cj];
     }
     paint(brushPosition, radius, brush) {
@@ -1173,17 +1219,17 @@ class Wall {
             if (ci === null) {
                 return;
             }
-            const brushRadius = radius / this.kWallWidthMeters * this.kWidth;
+            const brushRadius = radius / this.kMetersPerBlock;
             let hasChanges = false;
             let deltaPoints = 0;
             let sum_x = 0;
             let sum_y = 0;
             for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
-                if (i < 0 || i >= this.kWidth) {
+                if (i < 0 || i >= this.level.width()) {
                     continue;
                 }
                 for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
-                    if (j < 0 || j >= this.kWidth) {
+                    if (j < 0 || j >= this.level.height()) {
                         continue;
                     }
                     if (deltaPoints >= brush.getSupply()) {
@@ -1191,11 +1237,11 @@ class Wall {
                     }
                     const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
                     if (r2 < brushRadius * brushRadius) {
-                        if (this.blocks[i + j * this.kWidth] !== 1) {
+                        if (this.blocks[i + j * this.level.width()] !== 1) {
                             if (Math.random() * 20 > brush.getSupply()) {
                                 continue;
                             }
-                            this.blocks[i + j * this.kWidth] = 1;
+                            this.blocks[i + j * this.level.width()] = 1;
                             const wx = this.worldXForI(i);
                             const wy = this.worldYForJ(j);
                             sum_x += wx;
@@ -1224,7 +1270,7 @@ class Wall {
         }
         const i = Math.round(ci);
         const j = Math.round(cj);
-        const colorNumber = this.blocks[i + j * this.kWidth];
+        const colorNumber = this.blocks[i + j * this.level.width()];
         if (colorNumber === 0) {
             return null;
         }

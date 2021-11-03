@@ -8,6 +8,7 @@ import { Score } from "./score";
 import { Wall } from "./wall";
 import { AssetLibrary } from "./assetLibrary";
 import { CritterSource } from "./critterSource";
+import { LargeLevel, SmallLevel } from "./levelSpec";
 
 var brush = null;
 var wall: Wall = null;
@@ -32,7 +33,7 @@ AFRAME.registerComponent("go", {
     eText.addText("Let's go!", 0, 1.5, -0.6);
     score = new Score(document.querySelector('#score'));
 
-    wall = new Wall(eText, score);
+    wall = new Wall(new SmallLevel(), eText, score);
     critters = new CritterSource(wall, assetLibrary, score, eText);
 
     brush = new Brush(document.querySelector('#player'),
