@@ -24,7 +24,7 @@ export class CritterSource {
 
   private extractObject(obj: any, container: AFRAME.Entity) {
     // const ent = document.createElement('a-entity');
-    obj.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#0f0' });
+    obj.material = this.assetLibrary.getMetalTexture('#0f0');
     // obj.parent.remove(obj);
     // ent.object3D = obj;
     // container.appendChild(ent);
@@ -50,7 +50,7 @@ export class CritterSource {
         });
         const critter = new Critter(
           Critter.walkingGait, container, parts, this.wall,
-          spawnTime, this.score, this.eText);
+          spawnTime, this.score, this.eText, this.assetLibrary);
         resolve(critter);
       });
       scene.appendChild(container);

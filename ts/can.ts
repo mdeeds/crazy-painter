@@ -27,35 +27,11 @@ export class Can {
         if (node.material && node.material.color) {
           node.material.color.set('#840');
           if (node.material.name === 'Neon') {
-            node.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#f80' });
-            // node.material.emissive.set('orange');
-            // This will cause it to crash :-/
-            // node.material.type = 'MeshBasicMaterial';
+            node.material = this.assetLibrary.getNeonTexture('#f80');
           }
         }
       });
     });
-
-    return model;
-  }
-
-  private buildTwoToneCan(): AFRAME.Entity {
-    const model = document.createElement('a-entity');
-    const dark = document.createElement('a-entity');
-    dark.setAttribute('obj-model', `obj: obj/bucket-dark.obj`);
-    dark.setAttribute('material', 'color: orange; side: double');
-    dark.setAttribute('scale', '0.1 0.1 0.1');
-    model.appendChild(dark);
-
-    const neon = document.createElement('a-entity');
-    neon.setAttribute('obj-model', `obj: obj/bucket-neon.obj`);
-    neon.setAttribute('scale', '0.1 0.1 0.1');
-    neon.setAttribute('material', 'color: orange; shader: flat; side: double');
-    model.appendChild(neon);
-
-    // model.setAttribute('height', '0.25');
-    // model.setAttribute('radius', '0.10');
-    model.setAttribute('position', '0 0.125 0');
     return model;
   }
 
@@ -69,6 +45,4 @@ export class Can {
       }
     }
   }
-
-
 }

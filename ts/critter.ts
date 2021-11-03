@@ -1,4 +1,5 @@
 import * as AFRAME from "aframe";
+import { AssetLibrary } from "./assetLibrary";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
 import { Feet } from "./feet";
@@ -19,11 +20,12 @@ export class Critter {
   constructor(private gaitDescriptor: number[][],
     private container: AFRAME.Entity, private parts: CritterParts,
     private wall: Wall, private spawnTimeMs: number, private score: Score,
-    private eText: EphemeralText) {
+    private eText: EphemeralText, private assetLibrary: AssetLibrary) {
     this.feet = new Feet(0.12, 600, container, parts.body, this.wall);
     for (const [i, f] of parts.feet.entries()) {
       const gaitIndex = i % this.gaitDescriptor.length;
-      this.feet.add(new Foot(new Pod(this.gaitDescriptor[gaitIndex]), f, this.wall));
+      this.feet.add(new Foot(new Pod(this.gaitDescriptor[gaitIndex]), f,
+        this.wall, this.assetLibrary));
     }
     // body.object3D.position.z = wall.wallZ;
   }

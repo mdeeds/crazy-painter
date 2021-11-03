@@ -2,16 +2,38 @@
 /******/ 	var __webpack_modules__ = ({
 
 /***/ 673:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AssetLibrary = void 0;
+const AFRAME = __importStar(__webpack_require__(449));
 class AssetLibrary {
     constructor(assetCollection) {
         this.assetCollection = assetCollection;
         this.idMap = new Map();
+        this.neonTextureMap = new Map();
+        this.metalTextureMap = new Map();
     }
     addImage(url) {
         const img = document.createElement('img');
@@ -40,6 +62,25 @@ class AssetLibrary {
             return this.addImage(url);
         }
         return this.addItem(url);
+    }
+    getNeonTexture(color) {
+        if (this.neonTextureMap.has(color)) {
+            return this.neonTextureMap.get(color);
+        }
+        const material = new AFRAME.THREE.MeshBasicMaterial({ color: color });
+        this.neonTextureMap.set(color, material);
+        return material;
+    }
+    getMetalTexture(color) {
+        if (this.metalTextureMap.has(color)) {
+            return this.metalTextureMap.get(color);
+        }
+        const material = new AFRAME.THREE.MeshStandardMaterial({
+            color: color,
+            metalness: 1.0,
+        });
+        this.metalTextureMap.set(color, material);
+        return material;
     }
 }
 exports.AssetLibrary = AssetLibrary;
@@ -218,31 +259,11 @@ class Can {
                 if (node.material && node.material.color) {
                     node.material.color.set('#840');
                     if (node.material.name === 'Neon') {
-                        node.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#f80' });
-                        // node.material.emissive.set('orange');
-                        // This will cause it to crash :-/
-                        // node.material.type = 'MeshBasicMaterial';
+                        node.material = this.assetLibrary.getNeonTexture('#f80');
                     }
                 }
             });
         });
-        return model;
-    }
-    buildTwoToneCan() {
-        const model = document.createElement('a-entity');
-        const dark = document.createElement('a-entity');
-        dark.setAttribute('obj-model', `obj: obj/bucket-dark.obj`);
-        dark.setAttribute('material', 'color: orange; side: double');
-        dark.setAttribute('scale', '0.1 0.1 0.1');
-        model.appendChild(dark);
-        const neon = document.createElement('a-entity');
-        neon.setAttribute('obj-model', `obj: obj/bucket-neon.obj`);
-        neon.setAttribute('scale', '0.1 0.1 0.1');
-        neon.setAttribute('material', 'color: orange; shader: flat; side: double');
-        model.appendChild(neon);
-        // model.setAttribute('height', '0.25');
-        // model.setAttribute('radius', '0.10');
-        model.setAttribute('position', '0 0.125 0');
         return model;
     }
     tick(timeMs, timeDeltaMs) {
@@ -299,7 +320,7 @@ class CritterParts {
 }
 exports.CritterParts = CritterParts;
 class Critter {
-    constructor(gaitDescriptor, container, parts, wall, spawnTimeMs, score, eText) {
+    constructor(gaitDescriptor, container, parts, wall, spawnTimeMs, score, eText, assetLibrary) {
         this.gaitDescriptor = gaitDescriptor;
         this.container = container;
         this.parts = parts;
@@ -307,12 +328,13 @@ class Critter {
         this.spawnTimeMs = spawnTimeMs;
         this.score = score;
         this.eText = eText;
+        this.assetLibrary = assetLibrary;
         this.done = false;
         this.worldPosition = new AFRAME.THREE.Vector3();
         this.feet = new feet_1.Feet(0.12, 600, container, parts.body, this.wall);
         for (const [i, f] of parts.feet.entries()) {
             const gaitIndex = i % this.gaitDescriptor.length;
-            this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[gaitIndex]), f, this.wall));
+            this.feet.add(new foot_1.Foot(new pod_1.Pod(this.gaitDescriptor[gaitIndex]), f, this.wall, this.assetLibrary));
         }
         // body.object3D.position.z = wall.wallZ;
     }
@@ -458,25 +480,6 @@ Critter.walkingGait = [[9, 7], [1, 7, 8]];
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -488,7 +491,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CritterSource = void 0;
-const AFRAME = __importStar(__webpack_require__(449));
 const critter_1 = __webpack_require__(918);
 class CritterSource {
     constructor(wall, assetLibrary, score, eText) {
@@ -505,7 +507,7 @@ class CritterSource {
     }
     extractObject(obj, container) {
         // const ent = document.createElement('a-entity');
-        obj.material = new AFRAME.THREE.MeshBasicMaterial({ color: '#0f0' });
+        obj.material = this.assetLibrary.getMetalTexture('#0f0');
         // obj.parent.remove(obj);
         // ent.object3D = obj;
         // container.appendChild(ent);
@@ -527,7 +529,7 @@ class CritterSource {
                             parts.feet[i] = node;
                         }
                     });
-                    const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall, spawnTime, this.score, this.eText);
+                    const critter = new critter_1.Critter(critter_1.Critter.walkingGait, container, parts, this.wall, spawnTime, this.score, this.eText, this.assetLibrary);
                     resolve(critter);
                 });
                 scene.appendChild(container);
@@ -729,10 +731,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Foot = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 class Foot {
-    constructor(pod, foot, wall) {
+    constructor(pod, foot, wall, assetLibrary) {
         this.pod = pod;
         this.foot = foot;
         this.wall = wall;
+        this.assetLibrary = assetLibrary;
         this.color = null;
         this.worldPosition = new AFRAME.THREE.Vector3();
         this.initialPosition = new AFRAME.THREE.Vector3();
@@ -753,7 +756,7 @@ class Foot {
             }
             else if (wallColor !== null && this.color != wallColor) {
                 this.color = wallColor;
-                // TODO: Change texture.
+                this.foot.material = this.assetLibrary.getNeonTexture(this.color);
             }
         }
     }
