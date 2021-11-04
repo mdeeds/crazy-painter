@@ -26,7 +26,6 @@ export class AssetLibrary {
     return item.id;
   }
 
-
   getId(url: string) {
     if (this.idMap.has(url)) {
       return this.idMap.get(url);
@@ -37,4 +36,28 @@ export class AssetLibrary {
     }
     return this.addItem(url);
   }
+
+  private neonTextureMap = new Map<string, any>();
+  getNeonTexture(color: string): any {
+    if (this.neonTextureMap.has(color)) {
+      return this.neonTextureMap.get(color);
+    }
+    const material = new AFRAME.THREE.MeshBasicMaterial({ color: color });
+    this.neonTextureMap.set(color, material);
+    return material;
+  }
+
+  private metalTextureMap = new Map<string, any>();
+  getMetalTexture(color: string): any {
+    if (this.metalTextureMap.has(color)) {
+      return this.metalTextureMap.get(color);
+    }
+    const material = new AFRAME.THREE.MeshStandardMaterial({
+      color: color,
+      metalness: 1.0,
+    });
+    this.metalTextureMap.set(color, material);
+    return material;
+  }
+
 }

@@ -8,6 +8,8 @@ import { Score } from "./score";
 import { Wall } from "./wall";
 import { AssetLibrary } from "./assetLibrary";
 import { CritterSource } from "./critterSource";
+import { LargeLevel, SmallLevel } from "./levelSpec";
+import { AnimatedObject } from "./animatedObject";
 
 var brush = null;
 var wall: Wall = null;
@@ -15,6 +17,7 @@ var critters: CritterSource = null;
 var eText: EphemeralText = null;
 var score: Score;
 var cans: Can[] = [];
+var animations: AnimatedObject[] = [];
 
 function makeRoom(scene: AFRAME.Entity, assetLibrary: AssetLibrary) {
   const model = document.createElement('a-entity');
@@ -32,7 +35,7 @@ AFRAME.registerComponent("go", {
     eText.addText("Let's go!", 0, 1.5, -0.6);
     score = new Score(document.querySelector('#score'));
 
-    wall = new Wall(eText, score);
+    wall = new Wall(new SmallLevel(), eText, score, assetLibrary);
     critters = new CritterSource(wall, assetLibrary, score, eText);
 
     brush = new Brush(document.querySelector('#player'),
@@ -82,6 +85,9 @@ AFRAME.registerComponent("go", {
       for (const can of cans) {
         can.tick(timeMs, timeDeltaMs);
       }
+      for (const a of animations) {
+        a.tick(timeMs, timeDeltaMs);
+      }
     } catch (e) {
       Debug.set(`Tick error: ${e}`);
       const url = new URL(document.URL);
@@ -100,14 +106,14 @@ body.innerHTML = `
   <a-assets></a-assets>
 
 <a-sky color="#112" radius=3000></a-sky>
-<a-entity light="type: ambient; color: #222"></a-entity>
-<a-entity light="type:directional; color: #777" position="1800 5000 1200"></a-entity>
+<a-entity light="type: ambient; color: #555"></a-entity>
+<a-entity light="type:directional; color: #fff" position="1800 5000 1200"></a-entity>
 <a-entity id='world'>
 </a-entity>
 <a-entity id=score position='0 2.4 -0.8'></a-entity>
 <a-entity id='player'>
   <a-camera id="camera" position="0 1.6 0">
-    <a-entity light="type:point; intensity: 0.1; distance: 4; decay: 2" position="0 0.1 -0.1">
+    <a-entity light="type:point; intensity: 0.5; distance: 4; decay: 2" position="0 0.1 -0.1">
   </a-camera>
   <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly; color: #aaaaff">
   </a-entity>
