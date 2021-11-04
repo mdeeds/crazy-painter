@@ -14,15 +14,14 @@ export class CritterParts {
 }
 
 export class Critter {
-  private feet: Feet;
+  private feet: Foot[] = [];
   private done = false;
   constructor(
     private container: AFRAME.Entity, private parts: CritterParts,
     private wall: Wall, private spawnTimeMs: number, private score: Score,
     private eText: EphemeralText, private assetLibrary: AssetLibrary) {
-    this.feet = new Feet();
     for (const [i, f] of parts.feet.entries()) {
-      this.feet.add(new Foot(f, this.wall, this.assetLibrary));
+      this.feet.push(new Foot(f, this.wall, this.assetLibrary));
     }
     // container.appendChild(parts.body.entity);
     // body.object3D.position.z = wall.wallZ;
@@ -53,5 +52,8 @@ export class Critter {
       this.done = true;
     }
     this.parts.body.entity.object3D.position.x = x;
+    for (const f of this.feet) {
+      f.tick(timeMs, timeDeltaMs);
+    }
   }
 };

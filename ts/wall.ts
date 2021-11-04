@@ -10,7 +10,7 @@ export class Wall {
   private wallTex = null;
   readonly wallZ: number;
   readonly wallY: number;
-  private kMetersPerBlock = 0.05;
+  readonly kMetersPerBlock = 0.05;
   private kPixelsPerBlock = 32;
 
   private blocks: Uint8ClampedArray;

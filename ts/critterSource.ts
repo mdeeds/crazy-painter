@@ -48,7 +48,7 @@ export class CritterSource {
   async tick(timeMs: number, timeDeltaMs: number) {
     this.timeToNextCritterMs -= timeDeltaMs;
     if (this.timeToNextCritterMs <= 0) {
-      this.timeToNextCritterMs = 5000;
+      this.timeToNextCritterMs = 15000;
       const turtleEnt = document.createElement('a-entity');
       turtleEnt.setAttribute('position',
         `0` +
