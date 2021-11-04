@@ -28,7 +28,7 @@ export class SmallLevel implements levelSpec {
   private colorMapInternal = new Map<number, string>();
   constructor() {
     this.colorMapInternal.set(0, '#444');
-    this.colorMapInternal.set(1, '#4f0');
+    this.colorMapInternal.set(1, '#f80');
   }
   getColorMap() {
     return this.colorMapInternal;

@@ -1,5 +1,6 @@
 import * as AFRAME from "aframe";
 import { resolve } from "path";
+import { AnimatedObject } from "./animatedObject";
 import { AssetLibrary } from "./assetLibrary";
 
 import { Critter, CritterParts } from "./critter";
@@ -12,7 +13,7 @@ export class CritterSource {
   private timeToNextCritterMs = 1000;
   private critters: Critter[] = [];
 
-  private lizard = null;
+  private lizards: AnimatedObject[] = [];
 
   constructor(private wall: Wall, private assetLibrary: AssetLibrary,
     private score: Score, private eText: EphemeralText) {
@@ -22,39 +23,31 @@ export class CritterSource {
     return this.critters;
   }
 
-  private extractObject(obj: any, container: AFRAME.Entity) {
-    // const ent = document.createElement('a-entity');
-    obj.material = this.assetLibrary.getMetalTexture('#0f0');
-    // obj.parent.remove(obj);
-    // ent.object3D = obj;
-    // container.appendChild(ent);
-  }
+  private async makeTurtle(container: AFRAME.Entity, spawnTime: number): Promise<Critter> {
+    console.log('Load model start');
+    const lizard = await AnimatedObject.make(
+      'obj/lizard.gltf', this.assetLibrary, container);
+    this.lizards.push(lizard);
+    lizard.play();
+    console.log('Load model done');
 
-  private async makeTurtle(container: AFRAME.Entity, spawnTime: number, scene: AFRAME.Entity): Promise<Critter> {
-    this.lizard = document.createElement('a-entity');
-    this.lizard.setAttribute('gltf-model',
-      `#${this.assetLibrary.getId('obj/lizard.gltf')}`);
-    container.appendChild(this.lizard);
-    const parts = new CritterParts(this.lizard);
+    //container.appendChild(this.lizard.entity);
+    console.log('AAAAA: Adding a lizard');
+    const parts = new CritterParts(lizard);
 
-    return new Promise<Critter>((resolve, reject) => {
-      this.lizard.addEventListener('model-loaded', () => {
-        const obj = this.lizard.getObject3D('mesh');
-        obj.traverse(node => {
-          const m = (/foo[tr]-([\d+])/i).exec(node.name);
-          if (m && m.length > 0) {
-            const i = parseInt(m[1]);
-            this.extractObject(node, this.lizard);
-            parts.feet[i] = node;
-          }
-        });
-        const critter = new Critter(
-          Critter.walkingGait, container, parts, this.wall,
-          spawnTime, this.score, this.eText, this.assetLibrary);
-        resolve(critter);
-      });
-      scene.appendChild(container);
-    })
+    const obj = lizard.entity.getObject3D('mesh');
+    obj.traverse(node => {
+      const m = (/foo[tr]-([\d+])/i).exec(node.name);
+      if (m && m.length > 0) {
+        const i = parseInt(m[1]);
+        parts.feet[i] = node;
+      }
+    });
+    const critter = new Critter(
+      container, parts, this.wall,
+      spawnTime, this.score, this.eText, this.assetLibrary);
+    console.log('AAAAA: Adding a lizard');
+    return critter;
   }
 
   async tick(timeMs: number, timeDeltaMs: number) {
@@ -67,13 +60,18 @@ export class CritterSource {
         ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
         ` ${this.wall.wallZ}`);
       turtleEnt.setAttribute('rotation', '90 0 0');
+      // TODO: We need to clean these up.
+      document.querySelector('a-scene').appendChild(turtleEnt);
       const turtle = await this.makeTurtle(
-        turtleEnt, timeMs, document.querySelector('a-scene'));
+        turtleEnt, timeMs);
       this.critters.push(turtle);
     }
 
     for (const critter of this.critters) {
-      critter.setPositions(timeMs);
+      critter.tick(timeMs, timeDeltaMs);
+    }
+    for (const lizard of this.lizards) {
+      lizard.tick(timeMs, timeDeltaMs);
     }
     for (let i = 0; i < this.critters.length; ++i) {
       if (this.critters[i].isDone()) {

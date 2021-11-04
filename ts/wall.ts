@@ -1,3 +1,4 @@
+import { AssetLibrary } from "./assetLibrary";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
 import { levelSpec } from "./levelSpec";
@@ -19,7 +20,8 @@ export class Wall {
   private readonly wallObject = null;
   private wallPosition = null;
 
-  constructor(private level: levelSpec, private eText: EphemeralText, private score: Score) {
+  constructor(private level: levelSpec, private eText: EphemeralText,
+    private score: Score, private assetLibrary: AssetLibrary) {
     const scene = document.querySelector('a-scene');
     const wall = document.createElement('a-entity');
     this.wallObject = wall.object3D;
@@ -40,6 +42,15 @@ export class Wall {
       1024 / this.kPixelsPerBlock * this.kMetersPerBlock,
       1024 / this.kPixelsPerBlock * this.kMetersPerBlock);
     this.wallPosition = new AFRAME.THREE.Vector3(0, this.wallY, this.wallZ);
+
+    const url = new URL(document.URL);
+    if (url.searchParams.get('doors')) {
+      const doors = document.createElement('a-entity');
+      doors.setAttribute('gltf-model',
+        `#${this.assetLibrary.getId('obj/oven doors.gltf')}`);
+      doors.setAttribute('position', '0 1.2 -0.95');
+      scene.appendChild(doors);
+    }
 
     {
       const centerPx = this.kPixelsPerBlock * level.width() / 2;
