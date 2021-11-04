@@ -24,15 +24,11 @@ export class CritterSource {
   }
 
   private async makeTurtle(container: AFRAME.Entity, spawnTime: number): Promise<Critter> {
-    console.log('Load model start');
     const lizard = await AnimatedObject.make(
       'obj/lizard.gltf', this.assetLibrary, container);
     this.lizards.push(lizard);
     lizard.play();
-    console.log('Load model done');
 
-    //container.appendChild(this.lizard.entity);
-    console.log('AAAAA: Adding a lizard');
     const parts = new CritterParts(lizard);
 
     const obj = lizard.entity.getObject3D('mesh');
@@ -46,7 +42,6 @@ export class CritterSource {
     const critter = new Critter(
       container, parts, this.wall,
       spawnTime, this.score, this.eText, this.assetLibrary);
-    console.log('AAAAA: Adding a lizard');
     return critter;
   }
 
