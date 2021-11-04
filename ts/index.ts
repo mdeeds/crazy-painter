@@ -113,7 +113,6 @@ body.innerHTML = `
 <a-entity id=score position='0 2.4 -0.8'></a-entity>
 <a-entity id='player'>
   <a-camera id="camera" position="0 1.6 0">
-    <a-entity light="type:point; intensity: 0.5; distance: 4; decay: 2" position="0 0.1 -0.1">
   </a-camera>
   <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly; color: #aaaaff">
   </a-entity>
