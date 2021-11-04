@@ -46,7 +46,7 @@ export class Critter {
   tick(timeMs: number, timeDeltaMs: number) {
     // TODO: calculate x-position based on spawnTimeMs.
     const secondsElapsed = (timeMs - this.spawnTimeMs) / 1000;
-    const mps = 0.16;
+    const mps = (0.35 - 0.15) / (30 / 24);
     const x = 0.5 + this.wall.kWallWidthMeters / 2 - mps * secondsElapsed;
 
     if (x < -this.wall.kWallWidthMeters / 2 - 0.5) {
