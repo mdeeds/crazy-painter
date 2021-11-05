@@ -774,23 +774,35 @@ function makeRoom(scene, assetLibrary) {
     const url = new URL(document.URL);
     if (url.searchParams.get('merge')) {
         model.addEventListener('model-loaded', () => {
+            const seenGeometries = new Map();
+            const seenTextures = new Map();
             console.log('AAAAA merging');
             const obj = model.getObject3D('mesh');
-            const geometries = [];
             // obj.updateMatrixWorld();
+            let geometryCount = 0;
             obj.traverse(node => {
-                if (node.geometry) {
+                if (node.geometry && node.material) {
                     node.updateMatrix();
-                    geometries.push(node.geometry.clone().applyMatrix4(node.matrix));
+                    if (!seenTextures.has(node.material.name)) {
+                        seenTextures.set(node.material.name, node.material);
+                        seenGeometries.set(node.material.name, []);
+                    }
+                    seenGeometries.get(node.material.name).push(node.geometry.clone().applyMatrix4(node.matrix));
+                    ++geometryCount;
                 }
             });
-            console.log(`AAAAA merging ${geometries.length} assets.`);
-            const merged = AFRAME.THREE.BufferGeometryUtils.mergeBufferGeometries(geometries, false);
-            const material = new AFRAME.THREE.MeshStandardMaterial({ color: 0xffff00 });
-            const mesh = new AFRAME.THREE.Mesh(merged, material);
+            console.log(`AAAAA merging ${geometryCount} assets;` +
+                ` ${seenTextures.size} unique textures.`);
+            const group = new AFRAME.THREE.Group();
+            for (const [name, geometries] of seenGeometries.entries()) {
+                const merged = AFRAME.THREE.BufferGeometryUtils.mergeBufferGeometries(geometries, false);
+                const material = seenTextures.get(name);
+                const mesh = new AFRAME.THREE.Mesh(merged, material);
+                group.add(mesh);
+            }
             model.remove();
             const model2 = document.createElement('a-entity');
-            model2.object3D = mesh;
+            model2.object3D = group;
             scene.appendChild(model2);
             console.log('AAAAA merge done');
         });
