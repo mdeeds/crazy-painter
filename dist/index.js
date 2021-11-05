@@ -771,40 +771,37 @@ var previousTicks = new Float32Array(60);
 function makeRoom(scene, assetLibrary) {
     const model = document.createElement('a-entity');
     model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/clean-room.gltf')}`);
-    const url = new URL(document.URL);
-    if (url.searchParams.get('merge')) {
-        model.addEventListener('model-loaded', () => {
-            const seenGeometries = new Map();
-            const seenTextures = new Map();
-            console.log('AAAAA merging');
-            const obj = model.getObject3D('mesh');
-            // obj.updateMatrixWorld();
-            obj.traverse(node => {
-                if (node.geometry && node.material) {
-                    node.updateMatrix();
-                    if (!seenTextures.has(node.material.name)) {
-                        seenTextures.set(node.material.name, node.material);
-                        seenGeometries.set(node.material.name, []);
-                    }
-                    seenGeometries.get(node.material.name).push(node.geometry.clone().applyMatrix4(node.matrix));
+    model.addEventListener('model-loaded', () => {
+        const seenGeometries = new Map();
+        const seenTextures = new Map();
+        console.log('AAAAA merging');
+        const obj = model.getObject3D('mesh');
+        // obj.updateMatrixWorld();
+        obj.traverse(node => {
+            if (node.geometry && node.material) {
+                node.updateMatrix();
+                if (!seenTextures.has(node.material.name)) {
+                    seenTextures.set(node.material.name, node.material);
+                    seenGeometries.set(node.material.name, []);
                 }
-            });
-            console.log(`AAAAA merging ${seenGeometries.size} assets;` +
-                ` ${seenTextures.size} unique textures.`);
-            const group = new AFRAME.THREE.Group();
-            for (const [name, geometries] of seenGeometries.entries()) {
-                const merged = AFRAME.THREE.BufferGeometryUtils.mergeBufferGeometries(geometries, false);
-                const material = seenTextures.get(name);
-                const mesh = new AFRAME.THREE.Mesh(merged, material);
-                group.add(mesh);
+                seenGeometries.get(node.material.name).push(node.geometry.clone().applyMatrix4(node.matrix));
             }
-            model.remove();
-            const model2 = document.createElement('a-entity');
-            model2.object3D = group;
-            scene.appendChild(model2);
-            console.log('AAAAA merge done');
         });
-    }
+        console.log(`AAAAA merging ${seenGeometries.size} assets;` +
+            ` ${seenTextures.size} unique textures.`);
+        const group = new AFRAME.THREE.Group();
+        for (const [name, geometries] of seenGeometries.entries()) {
+            const merged = AFRAME.THREE.BufferGeometryUtils.mergeBufferGeometries(geometries, false);
+            const material = seenTextures.get(name);
+            const mesh = new AFRAME.THREE.Mesh(merged, material);
+            group.add(mesh);
+        }
+        model.remove();
+        const model2 = document.createElement('a-entity');
+        model2.object3D = group;
+        scene.appendChild(model2);
+        console.log('AAAAA merge done');
+    });
     scene.appendChild(model);
 }
 AFRAME.registerComponent("go", {
