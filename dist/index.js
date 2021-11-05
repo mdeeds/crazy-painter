@@ -768,6 +768,24 @@ var tickers = [];
 function makeRoom(scene, assetLibrary) {
     const model = document.createElement('a-entity');
     model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/clean-room.gltf')}`);
+    const url = new URL(document.URL);
+    if (url.searchParams.get('merge')) {
+        model.addEventListener('model-loaded', () => {
+            console.log('AAAAA merging');
+            const obj = model.getObject3D('mesh');
+            const geometries = [];
+            obj.traverse(node => {
+                if (node.geometry) {
+                    geometries.push(node.geometry);
+                }
+            });
+            const merged = AFRAME.THREE.BufferGeometryUtils.mergeBufferGeometries(geometries, false);
+            const material = new AFRAME.THREE.MeshStandardMaterial({ color: 0xffff00 });
+            const mesh = new AFRAME.THREE.Mesh(merged, material);
+            model.object3D = mesh;
+            console.log('AAAAA merge done');
+        });
+    }
     scene.appendChild(model);
 }
 AFRAME.registerComponent("go", {
