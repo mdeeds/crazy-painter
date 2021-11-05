@@ -25,36 +25,44 @@ var previousTicks = new Float32Array(60);
 function makeRoom(scene: AFRAME.Entity, assetLibrary: AssetLibrary) {
   const model = document.createElement('a-entity');
   model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/clean-room.gltf')}`);
-
-  model.addEventListener('model-loaded', () => {
-    const seenGeometries = new Map<string, any[]>();
-    const seenTextures = new Map<string, any>();
-    const obj = model.getObject3D('mesh');
-    // obj.updateMatrixWorld();
-    obj.traverse(node => {
-      if (node.geometry && node.material) {
-        node.updateMatrix();
-        if (!seenTextures.has(node.material.name)) {
-          seenTextures.set(node.material.name, node.material);
-          seenGeometries.set(node.material.name, []);
+  const url = new URL(document.URL);
+  if (url.searchParams.get('merge')) {
+    model.addEventListener('model-loaded', () => {
+      const seenGeometries = new Map<string, any[]>();
+      const seenTextures = new Map<string, any>();
+      console.log('AAAAA merging');
+      const obj = model.getObject3D('mesh');
+      // obj.updateMatrixWorld();
+      let geometryCount = 0;
+      obj.traverse(node => {
+        if (node.geometry && node.material) {
+          node.updateMatrix();
+          if (!seenTextures.has(node.material.name)) {
+            seenTextures.set(node.material.name, node.material);
+            seenGeometries.set(node.material.name, []);
+          }
+          seenGeometries.get(node.material.name).push(
+            node.geometry.clone().applyMatrix4(node.matrix));
+          ++geometryCount;
         }
-        seenGeometries.get(node.material.name).push(
-          node.geometry.clone().applyMatrix4(node.matrix));
+      });
+      console.log(`AAAAA merging ${geometryCount} assets;` +
+        ` ${seenTextures.size} unique textures.`);
+      const group = new AFRAME.THREE.Group();
+      for (const [name, geometries] of seenGeometries.entries()) {
+        const merged = AFRAME.THREE.BufferGeometryUtils.mergeBufferGeometries(
+          geometries, false);
+        const material = seenTextures.get(name);
+        const mesh = new AFRAME.THREE.Mesh(merged, material);
+        group.add(mesh);
       }
+      model.remove();
+      const model2 = document.createElement('a-entity');
+      model2.object3D = group;
+      scene.appendChild(model2);
+      console.log('AAAAA merge done');
     });
-    const group = new AFRAME.THREE.Group();
-    for (const [name, geometries] of seenGeometries.entries()) {
-      const merged = AFRAME.THREE.BufferGeometryUtils.mergeBufferGeometries(
-        geometries, false);
-      const material = seenTextures.get(name);
-      const mesh = new AFRAME.THREE.Mesh(merged, material);
-      group.add(mesh);
-    }
-    model.remove();
-    const model2 = document.createElement('a-entity');
-    model2.object3D = group;
-    scene.appendChild(model2);
-  });
+  }
 
   scene.appendChild(model);
 }
