@@ -72,11 +72,11 @@ export class Wall implements Ticker {
   async loadDoors() {
     const scene = document.querySelector('a-scene');
     const doorContainer = document.createElement('a-entity');
-    doorContainer.setAttribute('position', `0 1.2 ${this.wallZ}`);
+    doorContainer.setAttribute('position', `0 ${this.wallY} ${this.wallZ}`);
     scene.appendChild(doorContainer);
     const doors = await AnimatedObject.make(
       'obj/oven doors.gltf', this.assetLibrary, doorContainer);
-    doors.play();
+    doors.fadeTo(5, 0.25);
     this.tickers.push(doors);
   }
 

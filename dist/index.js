@@ -78,6 +78,15 @@ class AnimatedObject {
             this.needsToStart = true;
         }
     }
+    fadeTo(timeS, amount) {
+        for (const clip of this.clips) {
+            this.mixer.clipAction(clip).weight = amount;
+            this.mixer.clipAction(clip).fadeIn(timeS);
+            this.mixer.clipAction(clip).play();
+            this.mixer.clipAction(clip).loop = AFRAME.THREE.LoopOnce;
+            this.mixer.clipAction(clip).clampWhenFinished = true;
+        }
+    }
     stop() {
         for (const clip of this.clips) {
             this.mixer.clipAction(clip).stop();
@@ -758,7 +767,7 @@ var score;
 var tickers = [];
 function makeRoom(scene, assetLibrary) {
     const model = document.createElement('a-entity');
-    model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/room.gltf')}`);
+    model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/clean-room.gltf')}`);
     scene.appendChild(model);
 }
 AFRAME.registerComponent("go", {
@@ -1002,10 +1011,10 @@ class Wall {
         return __awaiter(this, void 0, void 0, function* () {
             const scene = document.querySelector('a-scene');
             const doorContainer = document.createElement('a-entity');
-            doorContainer.setAttribute('position', `0 1.2 ${this.wallZ}`);
+            doorContainer.setAttribute('position', `0 ${this.wallY} ${this.wallZ}`);
             scene.appendChild(doorContainer);
             const doors = yield animatedObject_1.AnimatedObject.make('obj/oven doors.gltf', this.assetLibrary, doorContainer);
-            doors.play();
+            doors.fadeTo(5, 0.25);
             this.tickers.push(doors);
         });
     }

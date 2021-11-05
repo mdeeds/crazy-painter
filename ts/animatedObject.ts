@@ -50,6 +50,16 @@ export class AnimatedObject implements Ticker {
     }
   }
 
+  fadeTo(timeS: number, amount: number) {
+    for (const clip of this.clips) {
+      this.mixer.clipAction(clip).weight = amount;
+      this.mixer.clipAction(clip).fadeIn(timeS);
+      this.mixer.clipAction(clip).play();
+      this.mixer.clipAction(clip).loop = AFRAME.THREE.LoopOnce;
+      this.mixer.clipAction(clip).clampWhenFinished = true;
+    }
+  }
+
   stop() {
     for (const clip of this.clips) {
       this.mixer.clipAction(clip).stop();

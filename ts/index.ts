@@ -20,7 +20,7 @@ var tickers: Ticker[] = [];
 
 function makeRoom(scene: AFRAME.Entity, assetLibrary: AssetLibrary) {
   const model = document.createElement('a-entity');
-  model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/room.gltf')}`);
+  model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/clean-room.gltf')}`);
   scene.appendChild(model);
 }
 
