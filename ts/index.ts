@@ -18,6 +18,10 @@ var eText: EphemeralText = null;
 var score: Score;
 var tickers: Ticker[] = [];
 
+var totalElapsed = 0;
+var tickNumber = 0;
+var previousTicks = new Float32Array(60);
+
 function makeRoom(scene: AFRAME.Entity, assetLibrary: AssetLibrary) {
   const model = document.createElement('a-entity');
   model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/clean-room.gltf')}`);
@@ -108,6 +112,17 @@ AFRAME.registerComponent("go", {
       const url = new URL(document.URL);
       if (url.searchParams.get('throw')) {
         throw e;
+      }
+    }
+
+    if (timeMs >= 10000) {
+      totalElapsed -= previousTicks[tickNumber];
+      totalElapsed += timeDeltaMs;
+      previousTicks[tickNumber] = timeDeltaMs;
+      tickNumber = (tickNumber + 1) % previousTicks.length;
+      const fps = previousTicks.length * 1000 / totalElapsed;
+      if (tickNumber % 15 === 0) {
+        Debug.set(`${fps.toFixed(1)} fps`);
       }
     }
   }

@@ -765,6 +765,9 @@ var critters = null;
 var eText = null;
 var score;
 var tickers = [];
+var totalElapsed = 0;
+var tickNumber = 0;
+var previousTicks = new Float32Array(60);
 function makeRoom(scene, assetLibrary) {
     const model = document.createElement('a-entity');
     model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/clean-room.gltf')}`);
@@ -861,6 +864,16 @@ AFRAME.registerComponent("go", {
             const url = new URL(document.URL);
             if (url.searchParams.get('throw')) {
                 throw e;
+            }
+        }
+        if (timeMs >= 10000) {
+            totalElapsed -= previousTicks[tickNumber];
+            totalElapsed += timeDeltaMs;
+            previousTicks[tickNumber] = timeDeltaMs;
+            tickNumber = (tickNumber + 1) % previousTicks.length;
+            const fps = previousTicks.length * 1000 / totalElapsed;
+            if (tickNumber % 15 === 0) {
+                debug_1.Debug.set(`${fps.toFixed(1)} fps`);
             }
         }
     }
