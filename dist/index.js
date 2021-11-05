@@ -566,7 +566,7 @@ class Debug {
         const container = document.querySelector('a-camera');
         Debug.text = document.createElement('a-entity');
         Debug.text.setAttribute('text', `value: ${new Date().toLocaleString()};`);
-        Debug.text.setAttribute('width', '0.5');
+        Debug.text.setAttribute('width', '0.35');
         Debug.text.setAttribute('position', '0 0.2 -0.7');
         container.appendChild(Debug.text);
     }
@@ -777,15 +777,21 @@ function makeRoom(scene, assetLibrary) {
             console.log('AAAAA merging');
             const obj = model.getObject3D('mesh');
             const geometries = [];
+            // obj.updateMatrixWorld();
             obj.traverse(node => {
                 if (node.geometry) {
-                    geometries.push(node.geometry);
+                    node.updateMatrix();
+                    geometries.push(node.geometry.clone().applyMatrix4(node.matrix));
                 }
             });
+            console.log(`AAAAA merging ${geometries.length} assets.`);
             const merged = AFRAME.THREE.BufferGeometryUtils.mergeBufferGeometries(geometries, false);
             const material = new AFRAME.THREE.MeshStandardMaterial({ color: 0xffff00 });
             const mesh = new AFRAME.THREE.Mesh(merged, material);
-            model.object3D = mesh;
+            model.remove();
+            const model2 = document.createElement('a-entity');
+            model2.object3D = mesh;
+            scene.appendChild(model2);
             console.log('AAAAA merge done');
         });
     }
