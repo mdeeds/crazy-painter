@@ -1,7 +1,7 @@
 import * as AFRAME from "aframe";
 import { AssetLibrary } from "./assetLibrary";
 
-export class AnimatedObject {
+export class AnimatedObject implements Ticker {
   readonly entity: AFRAME.Entity;
   private mixer: any;
   private clips: any[] = [];

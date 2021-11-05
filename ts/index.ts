@@ -16,8 +16,7 @@ var wall: Wall = null;
 var critters: CritterSource = null;
 var eText: EphemeralText = null;
 var score: Score;
-var cans: Can[] = [];
-var animations: AnimatedObject[] = [];
+var tickers: Ticker[] = [];
 
 function makeRoom(scene: AFRAME.Entity, assetLibrary: AssetLibrary) {
   const model = document.createElement('a-entity');
@@ -34,8 +33,10 @@ AFRAME.registerComponent("go", {
     eText = new EphemeralText(scene);
     eText.addText("Let's go!", 0, 1.5, -0.6);
     score = new Score(document.querySelector('#score'));
+    tickers.push(eText);
 
     wall = new Wall(new SmallLevel(), eText, score, assetLibrary);
+    tickers.push(wall);
     critters = new CritterSource(wall, assetLibrary, score, eText);
 
     brush = new Brush(document.querySelector('#player'),
@@ -46,7 +47,7 @@ AFRAME.registerComponent("go", {
     canEntity.setAttribute('position', '-0.5 0 -0.2');
     scene.appendChild(canEntity);
     const can = new Can(canEntity, brush.getBrushes(), assetLibrary);
-    cans.push(can);
+    tickers.push(can);
 
     const body = document.querySelector('body');
     body.addEventListener('keydown', (ev: KeyboardEvent) => {
@@ -79,14 +80,8 @@ AFRAME.registerComponent("go", {
       if (brush != null) {
         brush.tick(timeMs, timeDeltaMs);
       }
-      if (eText != null) {
-        eText.tick(timeMs, timeDeltaMs);
-      }
-      for (const can of cans) {
-        can.tick(timeMs, timeDeltaMs);
-      }
-      for (const a of animations) {
-        a.tick(timeMs, timeDeltaMs);
+      for (const t of tickers) {
+        t.tick(timeMs, timeDeltaMs);
       }
     } catch (e) {
       Debug.set(`Tick error: ${e}`);

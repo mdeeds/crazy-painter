@@ -755,8 +755,7 @@ var wall = null;
 var critters = null;
 var eText = null;
 var score;
-var cans = [];
-var animations = [];
+var tickers = [];
 function makeRoom(scene, assetLibrary) {
     const model = document.createElement('a-entity');
     model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/room.gltf')}`);
@@ -772,14 +771,16 @@ AFRAME.registerComponent("go", {
             eText = new ephemeralText_1.EphemeralText(scene);
             eText.addText("Let's go!", 0, 1.5, -0.6);
             score = new score_1.Score(document.querySelector('#score'));
+            tickers.push(eText);
             wall = new wall_1.Wall(new levelSpec_1.SmallLevel(), eText, score, assetLibrary);
+            tickers.push(wall);
             critters = new critterSource_1.CritterSource(wall, assetLibrary, score, eText);
             brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall, critters);
             const canEntity = document.createElement('a-entity');
             canEntity.setAttribute('position', '-0.5 0 -0.2');
             scene.appendChild(canEntity);
             const can = new can_1.Can(canEntity, brush.getBrushes(), assetLibrary);
-            cans.push(can);
+            tickers.push(can);
             const body = document.querySelector('body');
             body.addEventListener('keydown', (ev) => {
                 let dy = 0;
@@ -824,14 +825,8 @@ AFRAME.registerComponent("go", {
             if (brush != null) {
                 brush.tick(timeMs, timeDeltaMs);
             }
-            if (eText != null) {
-                eText.tick(timeMs, timeDeltaMs);
-            }
-            for (const can of cans) {
-                can.tick(timeMs, timeDeltaMs);
-            }
-            for (const a of animations) {
-                a.tick(timeMs, timeDeltaMs);
+            for (const t of tickers) {
+                t.tick(timeMs, timeDeltaMs);
             }
         }
         catch (e) {
@@ -937,12 +932,22 @@ exports.Score = Score;
 /***/ }),
 
 /***/ 649:
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Wall = void 0;
+const animatedObject_1 = __webpack_require__(143);
 const debug_1 = __webpack_require__(756);
 class Wall {
     constructor(level, eText, score, assetLibrary) {
@@ -957,6 +962,7 @@ class Wall {
         this.colorMap = new Map();
         this.wallObject = null;
         this.wallPosition = null;
+        this.tickers = [];
         this.tmpPosition = new AFRAME.THREE.Vector3();
         const scene = document.querySelector('a-scene');
         const wall = document.createElement('a-entity');
@@ -976,10 +982,7 @@ class Wall {
         this.wallPosition = new AFRAME.THREE.Vector3(0, this.wallY, this.wallZ);
         const url = new URL(document.URL);
         if (url.searchParams.get('doors')) {
-            const doors = document.createElement('a-entity');
-            doors.setAttribute('gltf-model', `#${this.assetLibrary.getId('obj/oven doors.gltf')}`);
-            doors.setAttribute('position', '0 1.2 -0.95');
-            scene.appendChild(doors);
+            this.loadDoors();
         }
         {
             const centerPx = this.kPixelsPerBlock * level.width() / 2;
@@ -994,6 +997,17 @@ class Wall {
         this.blocks = new Uint8ClampedArray(level.width() * level.height());
         this.colorMap = level.getColorMap();
         this.updateCanvas();
+    }
+    loadDoors() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const scene = document.querySelector('a-scene');
+            const doorContainer = document.createElement('a-entity');
+            doorContainer.setAttribute('position', `0 1.2 ${this.wallZ}`);
+            scene.appendChild(doorContainer);
+            const doors = yield animatedObject_1.AnimatedObject.make('obj/oven doors.gltf', this.assetLibrary, doorContainer);
+            doors.play();
+            this.tickers.push(doors);
+        });
     }
     updateCanvas() {
         const ctx = this.canvas.getContext('2d');
@@ -1101,6 +1115,11 @@ class Wall {
             return null;
         }
         return this.colorMap.get(colorNumber);
+    }
+    tick(timeMs, timeDeltaMs) {
+        for (const t of this.tickers) {
+            t.tick(timeMs, timeDeltaMs);
+        }
     }
 }
 exports.Wall = Wall;
