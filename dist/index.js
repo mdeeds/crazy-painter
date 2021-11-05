@@ -44,13 +44,13 @@ class AnimatedObject {
         this.entity = document.createElement('a-entity');
         this.entity.setAttribute('gltf-model', `#${assetLibrary.getId(url)}`);
         this.entity.addEventListener('model-loaded', () => {
-            console.log('AAAAA loaded');
             // Grab the mesh / scene.
             const obj = this.entity.getObject3D('mesh');
             // Go over the submeshes and modify materials we want.
+            console.log(`Loaded: ${url}`);
             obj.traverse(node => {
                 if (node.name) {
-                    console.log(node.name);
+                    console.log(` ${node.name}`);
                 }
             });
             if (obj.animations) {
@@ -405,7 +405,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Critter = exports.CritterParts = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
-const feet_1 = __webpack_require__(518);
 const foot_1 = __webpack_require__(410);
 class CritterParts {
     constructor(body) {
@@ -423,11 +422,11 @@ class Critter {
         this.score = score;
         this.eText = eText;
         this.assetLibrary = assetLibrary;
+        this.feet = [];
         this.done = false;
         this.worldPosition = new AFRAME.THREE.Vector3();
-        this.feet = new feet_1.Feet();
         for (const [i, f] of parts.feet.entries()) {
-            this.feet.add(new foot_1.Foot(f, this.wall, this.assetLibrary));
+            this.feet.push(new foot_1.Foot(f, this.wall, this.assetLibrary));
         }
         // container.appendChild(parts.body.entity);
         // body.object3D.position.z = wall.wallZ;
@@ -445,12 +444,15 @@ class Critter {
     tick(timeMs, timeDeltaMs) {
         // TODO: calculate x-position based on spawnTimeMs.
         const secondsElapsed = (timeMs - this.spawnTimeMs) / 1000;
-        const mps = 0.16;
+        const mps = (0.35 - 0.15) / (30 / 24);
         const x = 0.5 + this.wall.kWallWidthMeters / 2 - mps * secondsElapsed;
         if (x < -this.wall.kWallWidthMeters / 2 - 0.5) {
             this.done = true;
         }
         this.parts.body.entity.object3D.position.x = x;
+        for (const f of this.feet) {
+            f.tick(timeMs, timeDeltaMs);
+        }
     }
 }
 exports.Critter = Critter;
@@ -492,13 +494,9 @@ class CritterSource {
     }
     makeTurtle(container, spawnTime) {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('Load model start');
             const lizard = yield animatedObject_1.AnimatedObject.make('obj/lizard.gltf', this.assetLibrary, container);
             this.lizards.push(lizard);
             lizard.play();
-            console.log('Load model done');
-            //container.appendChild(this.lizard.entity);
-            console.log('AAAAA: Adding a lizard');
             const parts = new critter_1.CritterParts(lizard);
             const obj = lizard.entity.getObject3D('mesh');
             obj.traverse(node => {
@@ -509,7 +507,6 @@ class CritterSource {
                 }
             });
             const critter = new critter_1.Critter(container, parts, this.wall, spawnTime, this.score, this.eText, this.assetLibrary);
-            console.log('AAAAA: Adding a lizard');
             return critter;
         });
     }
@@ -517,7 +514,7 @@ class CritterSource {
         return __awaiter(this, void 0, void 0, function* () {
             this.timeToNextCritterMs -= timeDeltaMs;
             if (this.timeToNextCritterMs <= 0) {
-                this.timeToNextCritterMs = 5000;
+                this.timeToNextCritterMs = 15000;
                 const turtleEnt = document.createElement('a-entity');
                 turtleEnt.setAttribute('position', `0` +
                     ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
@@ -643,26 +640,6 @@ exports.EphemeralText = EphemeralText;
 
 /***/ }),
 
-/***/ 518:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Feet = void 0;
-class Feet {
-    constructor() {
-        this.feet = [];
-    }
-    add(foot) {
-        this.feet.push(foot);
-    }
-}
-exports.Feet = Feet;
-//# sourceMappingURL=feet.js.map
-
-/***/ }),
-
 /***/ 410:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -697,21 +674,29 @@ class Foot {
         this.assetLibrary = assetLibrary;
         this.color = null;
         this.worldPosition = new AFRAME.THREE.Vector3();
+        this.isDown = true;
         this.initialPosition = new AFRAME.THREE.Vector3();
         this.initialPosition.copy(footObject3D.position);
     }
     getSupply() { return this.color != null ? 1 : 0; }
     removeSupply(n) { }
-    setPosition(p, gaitM) {
-        this.footObject3D.position.y += Foot.kLift;
-        this.footObject3D.getWorldPosition(this.worldPosition);
-        const wallColor = this.wall.getColor(this.worldPosition);
-        if (wallColor === null && this.color !== null) {
-            this.wall.paint(this.worldPosition, 0.05, this);
+    tick(timeMs, timeDeltaMs) {
+        if (this.footObject3D.position.y < 0.003) {
+            if (!this.isDown) {
+                this.isDown = true;
+                this.footObject3D.getWorldPosition(this.worldPosition);
+                const wallColor = this.wall.getColor(this.worldPosition);
+                if (wallColor === null && this.color !== null) {
+                    this.wall.paint(this.worldPosition, this.wall.kMetersPerBlock * 1.4, this);
+                }
+                else if (wallColor !== null && this.color != wallColor) {
+                    this.color = wallColor;
+                    this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
+                }
+            }
         }
-        else if (wallColor !== null && this.color != wallColor) {
-            this.color = wallColor;
-            this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
+        else {
+            this.isDown = false;
         }
     }
 }
@@ -873,7 +858,6 @@ body.innerHTML = `
 <a-entity id=score position='0 2.4 -0.8'></a-entity>
 <a-entity id='player'>
   <a-camera id="camera" position="0 1.6 0">
-    <a-entity light="type:point; intensity: 0.5; distance: 4; decay: 2" position="0 0.1 -0.1">
   </a-camera>
   <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly; color: #aaaaff">
   </a-entity>

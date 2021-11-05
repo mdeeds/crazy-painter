@@ -19,15 +19,22 @@ export class Foot implements Painter {
   removeSupply(n: number) { }
 
   private worldPosition = new AFRAME.THREE.Vector3();
-  setPosition(p: number, gaitM: number) {
-    this.footObject3D.position.y += Foot.kLift;
-    this.footObject3D.getWorldPosition(this.worldPosition);
-    const wallColor = this.wall.getColor(this.worldPosition);
-    if (wallColor === null && this.color !== null) {
-      this.wall.paint(this.worldPosition, 0.05, this)
-    } else if (wallColor !== null && this.color != wallColor) {
-      this.color = wallColor;
-      this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
+  private isDown = true;
+  tick(timeMs: number, timeDeltaMs: number) {
+    if (this.footObject3D.position.y < 0.003) {
+      if (!this.isDown) {
+        this.isDown = true;
+        this.footObject3D.getWorldPosition(this.worldPosition);
+        const wallColor = this.wall.getColor(this.worldPosition);
+        if (wallColor === null && this.color !== null) {
+          this.wall.paint(this.worldPosition, this.wall.kMetersPerBlock * 1.4, this)
+        } else if (wallColor !== null && this.color != wallColor) {
+          this.color = wallColor;
+          this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
+        }
+      }
+    } else {
+      this.isDown = false;
     }
   }
 }
