@@ -566,7 +566,7 @@ class Debug {
         const container = document.querySelector('a-camera');
         Debug.text = document.createElement('a-entity');
         Debug.text.setAttribute('text', `value: ${new Date().toLocaleString()};`);
-        Debug.text.setAttribute('width', '0.5');
+        Debug.text.setAttribute('width', '0.35');
         Debug.text.setAttribute('position', '0 0.2 -0.7');
         container.appendChild(Debug.text);
     }
@@ -765,9 +765,36 @@ var critters = null;
 var eText = null;
 var score;
 var tickers = [];
+var totalElapsed = 0;
+var tickNumber = 0;
+var previousTicks = new Float32Array(60);
 function makeRoom(scene, assetLibrary) {
     const model = document.createElement('a-entity');
     model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/clean-room.gltf')}`);
+    const url = new URL(document.URL);
+    if (url.searchParams.get('merge')) {
+        model.addEventListener('model-loaded', () => {
+            console.log('AAAAA merging');
+            const obj = model.getObject3D('mesh');
+            const geometries = [];
+            // obj.updateMatrixWorld();
+            obj.traverse(node => {
+                if (node.geometry) {
+                    node.updateMatrix();
+                    geometries.push(node.geometry.clone().applyMatrix4(node.matrix));
+                }
+            });
+            console.log(`AAAAA merging ${geometries.length} assets.`);
+            const merged = AFRAME.THREE.BufferGeometryUtils.mergeBufferGeometries(geometries, false);
+            const material = new AFRAME.THREE.MeshStandardMaterial({ color: 0xffff00 });
+            const mesh = new AFRAME.THREE.Mesh(merged, material);
+            model.remove();
+            const model2 = document.createElement('a-entity');
+            model2.object3D = mesh;
+            scene.appendChild(model2);
+            console.log('AAAAA merge done');
+        });
+    }
     scene.appendChild(model);
 }
 AFRAME.registerComponent("go", {
@@ -843,6 +870,16 @@ AFRAME.registerComponent("go", {
             const url = new URL(document.URL);
             if (url.searchParams.get('throw')) {
                 throw e;
+            }
+        }
+        if (timeMs >= 10000) {
+            totalElapsed -= previousTicks[tickNumber];
+            totalElapsed += timeDeltaMs;
+            previousTicks[tickNumber] = timeDeltaMs;
+            tickNumber = (tickNumber + 1) % previousTicks.length;
+            const fps = previousTicks.length * 1000 / totalElapsed;
+            if (tickNumber % 15 === 0) {
+                debug_1.Debug.set(`${fps.toFixed(1)} fps`);
             }
         }
     }
