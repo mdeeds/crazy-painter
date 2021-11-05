@@ -1,7 +1,7 @@
 import * as AFRAME from "aframe";
 import { AssetLibrary } from "./assetLibrary";
 
-export class AnimatedObject {
+export class AnimatedObject implements Ticker {
   readonly entity: AFRAME.Entity;
   private mixer: any;
   private clips: any[] = [];
@@ -47,6 +47,16 @@ export class AnimatedObject {
       }
     } else {
       this.needsToStart = true;
+    }
+  }
+
+  fadeTo(timeS: number, amount: number) {
+    for (const clip of this.clips) {
+      this.mixer.clipAction(clip).weight = amount;
+      this.mixer.clipAction(clip).fadeIn(timeS);
+      this.mixer.clipAction(clip).play();
+      this.mixer.clipAction(clip).loop = AFRAME.THREE.LoopOnce;
+      this.mixer.clipAction(clip).clampWhenFinished = true;
     }
   }
 

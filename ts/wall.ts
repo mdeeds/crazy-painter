@@ -1,3 +1,4 @@
+import { AnimatedObject } from "./animatedObject";
 import { AssetLibrary } from "./assetLibrary";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
@@ -5,7 +6,7 @@ import { levelSpec } from "./levelSpec";
 import { Painter } from "./painter";
 import { Score } from "./score";
 
-export class Wall {
+export class Wall implements Ticker {
   private canvas: HTMLCanvasElement = null;
   private wallTex = null;
   readonly wallZ: number;
@@ -19,6 +20,7 @@ export class Wall {
   readonly kWallHeightMeters: number;
   private readonly wallObject = null;
   private wallPosition = null;
+  private tickers: Ticker[] = [];
 
   constructor(private level: levelSpec, private eText: EphemeralText,
     private score: Score, private assetLibrary: AssetLibrary) {
@@ -45,11 +47,7 @@ export class Wall {
 
     const url = new URL(document.URL);
     if (url.searchParams.get('doors')) {
-      const doors = document.createElement('a-entity');
-      doors.setAttribute('gltf-model',
-        `#${this.assetLibrary.getId('obj/oven doors.gltf')}`);
-      doors.setAttribute('position', '0 1.2 -0.95');
-      scene.appendChild(doors);
+      this.loadDoors();
     }
 
     {
@@ -69,6 +67,17 @@ export class Wall {
     this.blocks = new Uint8ClampedArray(level.width() * level.height());
     this.colorMap = level.getColorMap();
     this.updateCanvas();
+  }
+
+  async loadDoors() {
+    const scene = document.querySelector('a-scene');
+    const doorContainer = document.createElement('a-entity');
+    doorContainer.setAttribute('position', `0 ${this.wallY} ${this.wallZ}`);
+    scene.appendChild(doorContainer);
+    const doors = await AnimatedObject.make(
+      'obj/oven doors.gltf', this.assetLibrary, doorContainer);
+    doors.fadeTo(5, 0.25);
+    this.tickers.push(doors);
   }
 
   public updateCanvas() {
@@ -186,5 +195,11 @@ export class Wall {
       return null;
     }
     return this.colorMap.get(colorNumber);
+  }
+
+  tick(timeMs: number, timeDeltaMs: number) {
+    for (const t of this.tickers) {
+      t.tick(timeMs, timeDeltaMs);
+    }
   }
 }

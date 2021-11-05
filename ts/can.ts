@@ -2,7 +2,7 @@ import * as AFRAME from "aframe";
 import { AssetLibrary } from "./assetLibrary";
 import { PaintBrush } from "./brush";
 
-export class Can {
+export class Can implements Ticker {
   private canPosition: any;
   constructor(private container: AFRAME.Entity,
     private brushes: PaintBrush[], private assetLibrary: AssetLibrary) {

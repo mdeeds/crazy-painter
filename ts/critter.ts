@@ -13,7 +13,7 @@ export class CritterParts {
   constructor(readonly body: AnimatedObject) { }  // THREE.Object3D
 }
 
-export class Critter {
+export class Critter implements Ticker {
   private feet: Foot[] = [];
   private done = false;
   constructor(
