@@ -12,17 +12,21 @@ export class SFX {
     }
   }
 
+  private static singleton: SFX = null;
   static async make(): Promise<SFX> {
+    if (SFX.singleton) { return SFX.singleton; }
     return new Promise<SFX>((resolve, reject) => {
       document.querySelector('body').addEventListener('pointerdown',
         async () => {
+          if (SFX.singleton) { resolve(SFX.singleton); return; }
           console.log('starting...');
           await Tone.start();
           const synth = new Tone.Synth().toDestination();
           //play a middle 'C' for the duration of an 8th note
           synth.triggerAttackRelease("C4", "8n");
           console.log('started.');
-          resolve(new SFX(PositronConfig.patchPlucky));
+          SFX.singleton = new SFX(PositronConfig.patchPlucky);
+          resolve(SFX.singleton);
         });
     });
   }

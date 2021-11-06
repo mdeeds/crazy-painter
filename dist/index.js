@@ -1398,15 +1398,23 @@ class SFX {
     }
     static make() {
         return __awaiter(this, void 0, void 0, function* () {
+            if (SFX.singleton) {
+                return SFX.singleton;
+            }
             return new Promise((resolve, reject) => {
                 document.querySelector('body').addEventListener('pointerdown', () => __awaiter(this, void 0, void 0, function* () {
+                    if (SFX.singleton) {
+                        resolve(SFX.singleton);
+                        return;
+                    }
                     console.log('starting...');
                     yield Tone.start();
                     const synth = new Tone.Synth().toDestination();
                     //play a middle 'C' for the duration of an 8th note
                     synth.triggerAttackRelease("C4", "8n");
                     console.log('started.');
-                    resolve(new SFX(positron_1.PositronConfig.patchPlucky));
+                    SFX.singleton = new SFX(positron_1.PositronConfig.patchPlucky);
+                    resolve(SFX.singleton);
                 }));
             });
         });
@@ -1417,6 +1425,7 @@ class SFX {
     }
 }
 exports.SFX = SFX;
+SFX.singleton = null;
 //# sourceMappingURL=sft.js.map
 
 /***/ }),
