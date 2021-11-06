@@ -497,6 +497,12 @@ class CritterSource {
         this.timeToNextCritterMs = 1000;
         this.critters = [];
         this.lizards = [];
+        this.showLizards = true;
+        const url = new URL(document.URL);
+        const numLizards = url.searchParams.get('lizards');
+        if (numLizards === '0') {
+            this.showLizards = false;
+        }
     }
     getCritters() {
         return this.critters;
@@ -521,6 +527,9 @@ class CritterSource {
     }
     tick(timeMs, timeDeltaMs) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!this.showLizards) {
+                return;
+            }
             this.timeToNextCritterMs -= timeDeltaMs;
             if (this.timeToNextCritterMs <= 0) {
                 this.timeToNextCritterMs = 15000;

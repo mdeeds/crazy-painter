@@ -15,8 +15,15 @@ export class CritterSource {
 
   private lizards: AnimatedObject[] = [];
 
+  private showLizards = true;
+
   constructor(private wall: Wall, private assetLibrary: AssetLibrary,
     private score: Score, private eText: EphemeralText) {
+    const url = new URL(document.URL);
+    const numLizards = url.searchParams.get('lizards');
+    if (numLizards === '0') {
+      this.showLizards = false;
+    }
   }
 
   public getCritters(): Critter[] {
@@ -46,6 +53,9 @@ export class CritterSource {
   }
 
   async tick(timeMs: number, timeDeltaMs: number) {
+    if (!this.showLizards) {
+      return;
+    }
     this.timeToNextCritterMs -= timeDeltaMs;
     if (this.timeToNextCritterMs <= 0) {
       this.timeToNextCritterMs = 15000;
