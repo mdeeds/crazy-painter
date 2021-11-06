@@ -1396,17 +1396,23 @@ class SFX {
             this.pointSounds.push(p);
         }
     }
+    static waitForContext(callback) {
+        const AudioContext = window.AudioContext;
+        const audioCtx = new AudioContext();
+        if (audioCtx.state === 'running') {
+            callback();
+        }
+        else {
+            setTimeout(() => { this.waitForContext(callback); }, 500);
+        }
+    }
     static make() {
         return __awaiter(this, void 0, void 0, function* () {
             if (SFX.singleton) {
                 return SFX.singleton;
             }
             return new Promise((resolve, reject) => {
-                document.querySelector('body').addEventListener('pointerdown', () => __awaiter(this, void 0, void 0, function* () {
-                    if (SFX.singleton) {
-                        resolve(SFX.singleton);
-                        return;
-                    }
+                SFX.waitForContext(() => __awaiter(this, void 0, void 0, function* () {
                     console.log('starting...');
                     yield Tone.start();
                     const synth = new Tone.Synth().toDestination();
