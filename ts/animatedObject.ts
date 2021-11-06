@@ -16,12 +16,12 @@ export class AnimatedObject implements Ticker {
       // Grab the mesh / scene.
       const obj = this.entity.getObject3D('mesh');
       // Go over the submeshes and modify materials we want.
-      console.log(`Loaded: ${url}`);
-      obj.traverse(node => {
-        if (node.name) {
-          console.log(` ${node.name}`);
-        }
-      });
+      // console.log(`Loaded: ${url}`);
+      // obj.traverse(node => {
+      //   if (node.name) {
+      //     console.log(` ${node.name}`);
+      //   }
+      // });
       if (obj.animations) {
         this.mixer = new AFRAME.THREE.AnimationMixer(obj);
         this.clips = obj.animations;

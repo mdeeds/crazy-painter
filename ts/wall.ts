@@ -5,6 +5,7 @@ import { EphemeralText } from "./ephemeralText";
 import { levelSpec } from "./levelSpec";
 import { Painter } from "./painter";
 import { Score } from "./score";
+import { SFX } from "./sft";
 
 export class Wall implements Ticker {
   private canvas: HTMLCanvasElement = null;
@@ -23,7 +24,8 @@ export class Wall implements Ticker {
   private tickers: Ticker[] = [];
 
   constructor(private level: levelSpec, private eText: EphemeralText,
-    private score: Score, private assetLibrary: AssetLibrary) {
+    private score: Score, private assetLibrary: AssetLibrary,
+    private sfx: SFX) {
     const scene = document.querySelector('a-scene');
     const wall = document.createElement('a-entity');
     this.wallObject = wall.object3D;
@@ -174,6 +176,9 @@ export class Wall implements Ticker {
         this.updateCanvas();
         this.score.add(deltaPoints);
         brush.removeSupply(deltaPoints);
+        for (let i = 0; i < deltaPoints; ++i) {
+          this.sfx.point();
+        }
         this.eText.addText(`+${deltaPoints}`,
           sum_x / deltaPoints, sum_y / deltaPoints,
           this.wallZ + Math.random() * 0.05);

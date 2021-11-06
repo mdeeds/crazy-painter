@@ -10,6 +10,7 @@ import { AssetLibrary } from "./assetLibrary";
 import { CritterSource } from "./critterSource";
 import { LargeLevel, SmallLevel } from "./levelSpec";
 import { AnimatedObject } from "./animatedObject";
+import { SFX } from "./sft";
 
 var brush = null;
 var wall: Wall = null;
@@ -78,7 +79,9 @@ AFRAME.registerComponent("go", {
     score = new Score(document.querySelector('#score'));
     tickers.push(eText);
 
-    wall = new Wall(new SmallLevel(), eText, score, assetLibrary);
+    const sfx = await SFX.make();
+    wall = new Wall(new SmallLevel(), eText, score, assetLibrary,
+      sfx);
     tickers.push(wall);
     critters = new CritterSource(wall, assetLibrary, score, eText);
 
