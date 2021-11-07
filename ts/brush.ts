@@ -7,18 +7,17 @@ import { Wall } from "./wall";
 
 export class PaintBrush implements Painter {
   private kPaintCapacity = 120;
-  private color: string;
   private visibleColor: string;
 
   // Number of squares of paint
   private supply: number;
   readonly obj: any;
 
-  constructor(private entity: AFRAME.Entity) {
+  constructor(private entity: AFRAME.Entity, private color: string) {
     this.obj = entity.object3D;
-    this.entity.setAttribute('color', '#f80');
-    this.visibleColor = '#f80';
-    this.dip('#f80')
+    this.entity.setAttribute('color', color);
+    this.visibleColor = color;
+    this.dip(color)
   }
 
   public getSupply() {
@@ -50,10 +49,11 @@ export class Brush {
   private readonly kBrushRadius = 0.1;
   private pole: AFRAME.Entity;
 
-  constructor(container: AFRAME.Entity, private leftHand, private rightHand,
+  constructor(container: AFRAME.Entity, color: string,
+    private leftHand, private rightHand,
     private wall: Wall, private critters: CritterSource) {
-    this.leftBrush = this.makeBrush(container);
-    this.rightBrush = this.makeBrush(container);
+    this.leftBrush = this.makeBrush(container, color);
+    this.rightBrush = this.makeBrush(container, color);
     this.leftMinusRight = new AFRAME.THREE.Vector3();
     this.pole = document.createElement('a-cylinder');
     this.pole.setAttribute('radius', '0.01');
@@ -65,13 +65,13 @@ export class Brush {
     return [this.leftBrush, this.rightBrush];
   }
 
-  private makeBrush(container: AFRAME.Entity): PaintBrush {
+  private makeBrush(container: AFRAME.Entity, color: string): PaintBrush {
     const brushEntity = document.createElement('a-cylinder');
     brushEntity.setAttribute('radius', this.kBrushRadius);
     brushEntity.setAttribute('height', '0.01');
     brushEntity.setAttribute('rotation', '90 0 0');
     container.appendChild(brushEntity);
-    return new PaintBrush(brushEntity);
+    return new PaintBrush(brushEntity, color);
   }
 
   private brushPosition = new AFRAME.THREE.Vector3();

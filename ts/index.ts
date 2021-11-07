@@ -95,6 +95,7 @@ AFRAME.registerComponent("go", {
     critters = new CritterSource(wall, assetLibrary, score, eText);
 
     brush = new Brush(document.querySelector('#player'),
+      '#f80',
       document.querySelector('#leftHand').object3D,
       document.querySelector('#rightHand').object3D, wall, critters);
 

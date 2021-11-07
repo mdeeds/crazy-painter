@@ -68,7 +68,7 @@ export class Can implements Ticker {
       this.canPosition.sub(brush.obj.position);
       const d = this.canPosition.length();
       if (d < 0.2) {
-        brush.dip('orange');
+        brush.dip(this.color);
       }
     }
   }
