@@ -68,6 +68,15 @@ function makeRoom(scene: AFRAME.Entity, assetLibrary: AssetLibrary) {
   scene.appendChild(model);
 }
 
+var makeCanEntity = function (scene, assetLibrary, color, position) {
+  const canEntity = document.createElement('a-entity');
+  canEntity.setAttribute('position', position);
+  scene.appendChild(canEntity);
+  const can = new Can(canEntity, color,
+    brush.getBrushes(), assetLibrary);
+  tickers.push(can);
+}
+
 AFRAME.registerComponent("go", {
   init: async function () {
     Debug.init();
@@ -89,11 +98,8 @@ AFRAME.registerComponent("go", {
       document.querySelector('#leftHand').object3D,
       document.querySelector('#rightHand').object3D, wall, critters);
 
-    const canEntity = document.createElement('a-entity');
-    canEntity.setAttribute('position', '-0.5 0 -0.2');
-    scene.appendChild(canEntity);
-    const can = new Can(canEntity, brush.getBrushes(), assetLibrary);
-    tickers.push(can);
+    makeCanEntity(scene, assetLibrary, '#f80', '-0.5 0 -0.2');
+    makeCanEntity(scene, assetLibrary, '#0f0', '0.5 0 -0.2');
 
     const body = document.querySelector('body');
     body.addEventListener('keydown', (ev: KeyboardEvent) => {
