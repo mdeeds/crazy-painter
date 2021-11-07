@@ -23,11 +23,14 @@ export class PaintBrush implements Painter {
   public getSupply() {
     return this.supply;
   }
+  public getColor() {
+    return this.visibleColor;
+  }
 
   public removeSupply(n: number) {
     this.supply = Math.max(0, this.supply - n);
-    if (this.supply === 0 && this.visibleColor != '#333') {
-      this.visibleColor = '#333';
+    if (this.supply === 0 && this.visibleColor != '#444') {
+      this.visibleColor = '#444';
       this.entity.setAttribute('color', this.visibleColor)
     }
   }
@@ -83,20 +86,11 @@ export class Brush {
     }
     if (vec.z - this.kBrushRadius < this.wall.wallZ) {
       obj.getWorldPosition(this.brushPosition);
-      if (vec.z < this.wall.wallZ) {
+      if (vec.z <= this.wall.wallZ) {
         this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
         vec.z = this.wall.wallZ;
         for (const c of this.critters.getCritters()) {
           c.squash(this.brushPosition);
-        }
-      } else {
-        const d = this.kBrushRadius - (vec.z - this.wall.wallZ);
-        // c^2 + d^2 = r^2
-        // c = sqrt(r^2 - d^2)
-        const c = Math.sqrt(this.kBrushRadius * this.kBrushRadius - d * d);
-        // Debug.set(`Radius: ${c.toFixed(3)}`);
-        if (c > 0) {
-          this.wall.paint(this.brushPosition, c, brush);
         }
       }
     }

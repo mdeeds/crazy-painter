@@ -146,6 +146,7 @@ export class Wall implements Ticker {
       let deltaPoints = 0;
       let sum_x = 0;
       let sum_y = 0;
+      const colorIndex = this.level.getIndexForColor(brush.getColor());
       for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
         if (i < 0 || i >= this.level.width()) {
           continue;
@@ -159,11 +160,13 @@ export class Wall implements Ticker {
           }
           const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
           if (r2 < brushRadius * brushRadius) {
-            if (this.blocks[i + j * this.level.width()] !== 1) {
+            if (this.blocks[i + j * this.level.width()] !== colorIndex) {
               if (Math.random() * 20 > brush.getSupply()) {
                 continue;
               }
-              this.blocks[i + j * this.level.width()] = 1;
+              this.blocks[i + j * this.level.width()] = colorIndex;
+              // TODO: award points if the color is correct.
+              // TODO: deduct points if color is incorrect.
               const wx = this.worldXForI(i);
               const wy = this.worldYForJ(j);
               sum_x += wx;
