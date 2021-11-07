@@ -221,21 +221,25 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Brush = exports.PaintBrush = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 class PaintBrush {
-    constructor(entity) {
+    constructor(entity, color) {
         this.entity = entity;
+        this.color = color;
         this.kPaintCapacity = 120;
         this.obj = entity.object3D;
-        this.entity.setAttribute('color', '#f80');
-        this.visibleColor = '#f80';
-        this.dip('#f80');
+        this.entity.setAttribute('color', color);
+        this.visibleColor = color;
+        this.dip(color);
     }
     getSupply() {
         return this.supply;
     }
+    getColor() {
+        return this.visibleColor;
+    }
     removeSupply(n) {
         this.supply = Math.max(0, this.supply - n);
-        if (this.supply === 0 && this.visibleColor != '#333') {
-            this.visibleColor = '#333';
+        if (this.supply === 0 && this.visibleColor != '#444') {
+            this.visibleColor = '#444';
             this.entity.setAttribute('color', this.visibleColor);
         }
     }
@@ -250,7 +254,7 @@ class PaintBrush {
 }
 exports.PaintBrush = PaintBrush;
 class Brush {
-    constructor(container, leftHand, rightHand, wall, critters) {
+    constructor(container, color, leftHand, rightHand, wall, critters) {
         this.leftHand = leftHand;
         this.rightHand = rightHand;
         this.wall = wall;
@@ -260,8 +264,8 @@ class Brush {
         this.orientation = new AFRAME.THREE.Matrix4();
         this.up = new AFRAME.THREE.Object3D().up;
         this.xform = new AFRAME.THREE.Matrix4();
-        this.leftBrush = this.makeBrush(container);
-        this.rightBrush = this.makeBrush(container);
+        this.leftBrush = this.makeBrush(container, color);
+        this.rightBrush = this.makeBrush(container, color);
         this.leftMinusRight = new AFRAME.THREE.Vector3();
         this.pole = document.createElement('a-cylinder');
         this.pole.setAttribute('radius', '0.01');
@@ -271,13 +275,13 @@ class Brush {
     getBrushes() {
         return [this.leftBrush, this.rightBrush];
     }
-    makeBrush(container) {
+    makeBrush(container, color) {
         const brushEntity = document.createElement('a-cylinder');
         brushEntity.setAttribute('radius', this.kBrushRadius);
         brushEntity.setAttribute('height', '0.01');
         brushEntity.setAttribute('rotation', '90 0 0');
         container.appendChild(brushEntity);
-        return new PaintBrush(brushEntity);
+        return new PaintBrush(brushEntity, color);
     }
     clamp(brush) {
         const obj = brush.obj;
@@ -287,21 +291,11 @@ class Brush {
         }
         if (vec.z - this.kBrushRadius < this.wall.wallZ) {
             obj.getWorldPosition(this.brushPosition);
-            if (vec.z < this.wall.wallZ) {
+            if (vec.z <= this.wall.wallZ) {
                 this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
                 vec.z = this.wall.wallZ;
                 for (const c of this.critters.getCritters()) {
                     c.squash(this.brushPosition);
-                }
-            }
-            else {
-                const d = this.kBrushRadius - (vec.z - this.wall.wallZ);
-                // c^2 + d^2 = r^2
-                // c = sqrt(r^2 - d^2)
-                const c = Math.sqrt(this.kBrushRadius * this.kBrushRadius - d * d);
-                // Debug.set(`Radius: ${c.toFixed(3)}`);
-                if (c > 0) {
-                    this.wall.paint(this.brushPosition, c, brush);
                 }
             }
         }
@@ -375,27 +369,52 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Can = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 class Can {
-    constructor(container, brushes, assetLibrary) {
+    constructor(container, color, brushes, assetLibrary) {
         this.container = container;
+        this.color = color;
         this.brushes = brushes;
         this.assetLibrary = assetLibrary;
         container.appendChild(this.buildMaterialCan());
         this.canPosition = new AFRAME.THREE.Vector3();
+    }
+    parseColor(color) {
+        const m = color.match(/^#([0-9a-f]{3})$/i)[1];
+        if (m) {
+            // in three-character format, each value is multiplied by 0x11 to give an
+            // even scale from 0x00 to 0xff
+            return [
+                parseInt(m.charAt(0), 16) * 0x11,
+                parseInt(m.charAt(1), 16) * 0x11,
+                parseInt(m.charAt(2), 16) * 0x11
+            ];
+        }
+        else {
+            throw new Error(`Failed: ${color}; color must be #abc format.`);
+        }
+    }
+    makeColor(rgb) {
+        const rc = Math.round(rgb[0] / 0x11).toString(16);
+        const gc = Math.round(rgb[1] / 0x11).toString(16);
+        const bc = Math.round(rgb[2] / 0x11).toString(16);
+        return `#${rc}${gc}${bc}`;
     }
     buildMaterialCan() {
         const model = document.createElement('a-entity');
         model.setAttribute('gltf-model', `#${this.assetLibrary.getId('obj/bucket.gltf')}`);
         model.setAttribute('scale', '0.1 0.1 0.1');
         model.setAttribute('position', '0 0.125 0');
+        const neonRGB = this.parseColor(this.color);
+        const fadedRGB = [neonRGB[0] / 2, neonRGB[1] / 2, neonRGB[2] / 2];
+        const fadedColor = this.makeColor(fadedRGB);
         model.addEventListener('model-loaded', () => {
             // Grab the mesh / scene.
             const obj = model.getObject3D('mesh');
             // Go over the submeshes and modify materials we want.
             obj.traverse(node => {
                 if (node.material && node.material.color) {
-                    node.material.color.set('#840');
+                    node.material.color.set(fadedColor);
                     if (node.material.name === 'Neon') {
-                        node.material = this.assetLibrary.getNeonTexture('#f80');
+                        node.material = this.assetLibrary.getNeonTexture(this.color);
                     }
                 }
             });
@@ -408,7 +427,7 @@ class Can {
             this.canPosition.sub(brush.obj.position);
             const d = this.canPosition.length();
             if (d < 0.2) {
-                brush.dip('orange');
+                brush.dip(this.color);
             }
         }
     }
@@ -605,8 +624,8 @@ class Debug {
         const container = document.querySelector('a-camera');
         Debug.text = document.createElement('a-entity');
         Debug.text.setAttribute('text', `value: ${new Date().toLocaleString()};`);
-        Debug.text.setAttribute('width', '0.35');
-        Debug.text.setAttribute('position', '0 0.2 -0.7');
+        Debug.text.setAttribute('width', '0.25');
+        Debug.text.setAttribute('position', '0 0.2 -0.9');
         container.appendChild(Debug.text);
     }
     static set(message) {
@@ -728,6 +747,7 @@ class Foot {
     }
     getSupply() { return this.color != null ? 1 : 0; }
     removeSupply(n) { }
+    getColor() { return this.color; }
     tick(timeMs, timeDeltaMs) {
         if (this.footObject3D.position.y < 0.004) {
             if (!this.isDown) {
@@ -848,6 +868,13 @@ function makeRoom(scene, assetLibrary) {
     }
     scene.appendChild(model);
 }
+var makeCanEntity = function (scene, assetLibrary, color, position) {
+    const canEntity = document.createElement('a-entity');
+    canEntity.setAttribute('position', position);
+    scene.appendChild(canEntity);
+    const can = new can_1.Can(canEntity, color, brush.getBrushes(), assetLibrary);
+    tickers.push(can);
+};
 AFRAME.registerComponent("go", {
     init: function () {
         return __awaiter(this, void 0, void 0, function* () {
@@ -863,12 +890,9 @@ AFRAME.registerComponent("go", {
             wall = new wall_1.Wall(new levelSpec_1.SmallLevel(), eText, score, assetLibrary, sfx);
             tickers.push(wall);
             critters = new critterSource_1.CritterSource(wall, assetLibrary, score, eText);
-            brush = new brush_1.Brush(document.querySelector('#player'), document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall, critters);
-            const canEntity = document.createElement('a-entity');
-            canEntity.setAttribute('position', '-0.5 0 -0.2');
-            scene.appendChild(canEntity);
-            const can = new can_1.Can(canEntity, brush.getBrushes(), assetLibrary);
-            tickers.push(can);
+            brush = new brush_1.Brush(document.querySelector('#player'), '#f80', document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall, critters);
+            makeCanEntity(scene, assetLibrary, '#f80', '-0.5 0 -0.2');
+            makeCanEntity(scene, assetLibrary, '#0f0', '0.5 0 -0.2');
             const body = document.querySelector('body');
             body.addEventListener('keydown', (ev) => {
                 let dy = 0;
@@ -971,31 +995,43 @@ body.innerHTML = `
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SmallLevel = exports.LargeLevel = void 0;
-class LargeLevel {
-    constructor() {
+class AbstractLevel {
+    constructor(colors) {
         this.colorMapInternal = new Map();
-        this.colorMapInternal.set(0, '#444');
-        this.colorMapInternal.set(1, '#f80');
+        this.indexMapInternal = new Map();
+        for (const c of colors) {
+            this.setColor(this.colorMapInternal.size, c);
+        }
     }
+    setColor(index, color) {
+        this.colorMapInternal.set(index, color);
+        this.indexMapInternal.set(color, index);
+    }
+    getColorMap() {
+        return this.colorMapInternal;
+    }
+    getIndexForColor(color) {
+        if (!this.indexMapInternal.has(color)) {
+            this.setColor(this.indexMapInternal.size, color);
+        }
+        return this.indexMapInternal.get(color);
+    }
+}
+class LargeLevel extends AbstractLevel {
     width() { return 30; }
     height() { return 30; }
     paintColorNumber(i, j) { return 1; }
-    getColorMap() {
-        return this.colorMapInternal;
+    constructor() {
+        super(['#444', '#f80']);
     }
 }
 exports.LargeLevel = LargeLevel;
-class SmallLevel {
-    constructor() {
-        this.colorMapInternal = new Map();
-        this.colorMapInternal.set(0, '#444');
-        this.colorMapInternal.set(1, '#f80');
-    }
+class SmallLevel extends AbstractLevel {
     width() { return 10; }
     height() { return 10; }
     paintColorNumber(i, j) { return 1; }
-    getColorMap() {
-        return this.colorMapInternal;
+    constructor() {
+        super(['#444', '#f80']);
     }
 }
 exports.SmallLevel = SmallLevel;
@@ -1622,6 +1658,7 @@ class Wall {
             let deltaPoints = 0;
             let sum_x = 0;
             let sum_y = 0;
+            const colorIndex = this.level.getIndexForColor(brush.getColor());
             for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
                 if (i < 0 || i >= this.level.width()) {
                     continue;
@@ -1635,11 +1672,13 @@ class Wall {
                     }
                     const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
                     if (r2 < brushRadius * brushRadius) {
-                        if (this.blocks[i + j * this.level.width()] !== 1) {
+                        if (this.blocks[i + j * this.level.width()] !== colorIndex) {
                             if (Math.random() * 20 > brush.getSupply()) {
                                 continue;
                             }
-                            this.blocks[i + j * this.level.width()] = 1;
+                            this.blocks[i + j * this.level.width()] = colorIndex;
+                            // TODO: award points if the color is correct.
+                            // TODO: deduct points if color is incorrect.
                             const wx = this.worldXForI(i);
                             const wy = this.worldYForJ(j);
                             sum_x += wx;

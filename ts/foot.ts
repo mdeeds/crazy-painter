@@ -16,6 +16,7 @@ export class Foot implements Painter {
 
   getSupply() { return this.color != null ? 1 : 0; }
   removeSupply(n: number) { }
+  getColor() { return this.color }
 
   private worldPosition = new AFRAME.THREE.Vector3();
   private isDown = true;

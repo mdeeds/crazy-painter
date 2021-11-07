@@ -7,28 +7,30 @@ import { Wall } from "./wall";
 
 export class PaintBrush implements Painter {
   private kPaintCapacity = 120;
-  private color: string;
   private visibleColor: string;
 
   // Number of squares of paint
   private supply: number;
   readonly obj: any;
 
-  constructor(private entity: AFRAME.Entity) {
+  constructor(private entity: AFRAME.Entity, private color: string) {
     this.obj = entity.object3D;
-    this.entity.setAttribute('color', '#f80');
-    this.visibleColor = '#f80';
-    this.dip('#f80')
+    this.entity.setAttribute('color', color);
+    this.visibleColor = color;
+    this.dip(color)
   }
 
   public getSupply() {
     return this.supply;
   }
+  public getColor() {
+    return this.visibleColor;
+  }
 
   public removeSupply(n: number) {
     this.supply = Math.max(0, this.supply - n);
-    if (this.supply === 0 && this.visibleColor != '#333') {
-      this.visibleColor = '#333';
+    if (this.supply === 0 && this.visibleColor != '#444') {
+      this.visibleColor = '#444';
       this.entity.setAttribute('color', this.visibleColor)
     }
   }
@@ -50,10 +52,11 @@ export class Brush {
   private readonly kBrushRadius = 0.1;
   private pole: AFRAME.Entity;
 
-  constructor(container: AFRAME.Entity, private leftHand, private rightHand,
+  constructor(container: AFRAME.Entity, color: string,
+    private leftHand, private rightHand,
     private wall: Wall, private critters: CritterSource) {
-    this.leftBrush = this.makeBrush(container);
-    this.rightBrush = this.makeBrush(container);
+    this.leftBrush = this.makeBrush(container, color);
+    this.rightBrush = this.makeBrush(container, color);
     this.leftMinusRight = new AFRAME.THREE.Vector3();
     this.pole = document.createElement('a-cylinder');
     this.pole.setAttribute('radius', '0.01');
@@ -65,13 +68,13 @@ export class Brush {
     return [this.leftBrush, this.rightBrush];
   }
 
-  private makeBrush(container: AFRAME.Entity): PaintBrush {
+  private makeBrush(container: AFRAME.Entity, color: string): PaintBrush {
     const brushEntity = document.createElement('a-cylinder');
     brushEntity.setAttribute('radius', this.kBrushRadius);
     brushEntity.setAttribute('height', '0.01');
     brushEntity.setAttribute('rotation', '90 0 0');
     container.appendChild(brushEntity);
-    return new PaintBrush(brushEntity);
+    return new PaintBrush(brushEntity, color);
   }
 
   private brushPosition = new AFRAME.THREE.Vector3();
@@ -83,20 +86,11 @@ export class Brush {
     }
     if (vec.z - this.kBrushRadius < this.wall.wallZ) {
       obj.getWorldPosition(this.brushPosition);
-      if (vec.z < this.wall.wallZ) {
+      if (vec.z <= this.wall.wallZ) {
         this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
         vec.z = this.wall.wallZ;
         for (const c of this.critters.getCritters()) {
           c.squash(this.brushPosition);
-        }
-      } else {
-        const d = this.kBrushRadius - (vec.z - this.wall.wallZ);
-        // c^2 + d^2 = r^2
-        // c = sqrt(r^2 - d^2)
-        const c = Math.sqrt(this.kBrushRadius * this.kBrushRadius - d * d);
-        // Debug.set(`Radius: ${c.toFixed(3)}`);
-        if (c > 0) {
-          this.wall.paint(this.brushPosition, c, brush);
         }
       }
     }
