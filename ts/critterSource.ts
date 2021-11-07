@@ -65,7 +65,6 @@ export class CritterSource {
         ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
         ` ${this.wall.wallZ}`);
       turtleEnt.setAttribute('rotation', '90 0 0');
-      // TODO: We need to clean these up.
       document.querySelector('a-scene').appendChild(turtleEnt);
       const turtle = await this.makeTurtle(
         turtleEnt, timeMs);

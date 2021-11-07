@@ -3,7 +3,6 @@ import { AnimatedObject } from "./animatedObject";
 import { AssetLibrary } from "./assetLibrary";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
-import { Feet } from "./feet";
 import { Foot } from "./foot";
 import { Score } from "./score";
 import { Wall } from "./wall";
