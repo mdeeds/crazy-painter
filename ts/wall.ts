@@ -203,14 +203,15 @@ export class Wall implements Ticker {
         if (deltaPoints > 0) {
           this.sfx.point();
           this.eText.addText(`+${deltaPoints}`,
-            sum_x / deltaPoints, sum_y / deltaPoints,
+            sum_x / paintUsed, sum_y / paintUsed,
             this.wallZ + Math.random() * 0.05);
-        } else {
+        } else if (deltaPoints < 0) {
           this.eText.addText(`${deltaPoints}`,
-            sum_x / deltaPoints, sum_y / deltaPoints,
+            sum_x / paintUsed, sum_y / paintUsed,
             this.wallZ + Math.random() * 0.05, 'down');
+          this.sfx.minusPoint();
         }
-        this.remaining -= paintUsed;
+        this.remaining -= deltaPoints;
         if (this.remaining === 0) {
           this.sfx.complete();
         }

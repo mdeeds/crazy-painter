@@ -47,6 +47,17 @@ export class SFX {
       this.pointTones[i], '8n', null);
   }
 
+  minusPoint() {
+    const notes = [
+      'C3', 'C3', 'B2'
+    ];
+    let t = Tone.now();
+    for (const n of notes) {
+      SFX.singleton.synth.triggerAttackRelease(n, 0.4, t);
+      t += 0.050;
+    }
+  }
+
   complete() {
     const notes = [
       'A4', 'C5', 'E5', 'G5',

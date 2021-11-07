@@ -1505,6 +1505,16 @@ class SFX {
         const i = Math.trunc(Math.random() * this.pointTones.length);
         this.pointSounds[i].triggerAttackRelease(this.pointTones[i], '8n', null);
     }
+    minusPoint() {
+        const notes = [
+            'C3', 'C3', 'B2'
+        ];
+        let t = Tone.now();
+        for (const n of notes) {
+            SFX.singleton.synth.triggerAttackRelease(n, 0.4, t);
+            t += 0.050;
+        }
+    }
     complete() {
         const notes = [
             'A4', 'C5', 'E5', 'G5',
@@ -1718,12 +1728,13 @@ class Wall {
                 brush.removeSupply(deltaPoints);
                 if (deltaPoints > 0) {
                     this.sfx.point();
-                    this.eText.addText(`+${deltaPoints}`, sum_x / deltaPoints, sum_y / deltaPoints, this.wallZ + Math.random() * 0.05);
+                    this.eText.addText(`+${deltaPoints}`, sum_x / paintUsed, sum_y / paintUsed, this.wallZ + Math.random() * 0.05);
                 }
-                else {
-                    this.eText.addText(`${deltaPoints}`, sum_x / deltaPoints, sum_y / deltaPoints, this.wallZ + Math.random() * 0.05, 'down');
+                else if (deltaPoints < 0) {
+                    this.eText.addText(`${deltaPoints}`, sum_x / paintUsed, sum_y / paintUsed, this.wallZ + Math.random() * 0.05, 'down');
+                    this.sfx.minusPoint();
                 }
-                this.remaining -= paintUsed;
+                this.remaining -= deltaPoints;
                 if (this.remaining === 0) {
                     this.sfx.complete();
                 }
