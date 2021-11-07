@@ -316,10 +316,10 @@ class Brush {
         this.orientation.multiply(this.xform);
         this.pole.object3D.rotation.set(0, 0, 0);
         this.pole.object3D.applyMatrix4(this.orientation);
-        this.pole.object3D.position.clone(to);
-        // this.leftMinusRight.multiplyScalar(0.5);
-        // this.pole.object3D.position.add(this.leftMinusRight);
-        // this.leftMinusRight.multiplyScalar(2.0);
+        this.pole.object3D.position.copy(to);
+        this.leftMinusRight.multiplyScalar(0.5);
+        this.pole.object3D.position.add(this.leftMinusRight);
+        this.leftMinusRight.multiplyScalar(2.0);
         // edge.position = new THREE.Vector3().addVectors(pointX, direction.multiplyScalar(0.5));
     }
     tick(timeMs, timeDeltaMs) {
