@@ -257,16 +257,25 @@ class Brush {
         this.critters = critters;
         this.kBrushRadius = 0.1;
         this.brushPosition = new AFRAME.THREE.Vector3();
+        this.orientation = new AFRAME.THREE.Matrix4();
+        this.up = new AFRAME.THREE.Object3D().up;
+        this.xform = new AFRAME.THREE.Matrix4();
         this.leftBrush = this.makeBrush(container);
         this.rightBrush = this.makeBrush(container);
         this.leftMinusRight = new AFRAME.THREE.Vector3();
+        this.pole = document.createElement('a-cylinder');
+        this.pole.setAttribute('radius', '0.01');
+        this.pole.setAttribute('height', '2.0');
+        container.appendChild(this.pole);
     }
     getBrushes() {
         return [this.leftBrush, this.rightBrush];
     }
     makeBrush(container) {
-        const brushEntity = document.createElement('a-sphere');
+        const brushEntity = document.createElement('a-cylinder');
         brushEntity.setAttribute('radius', this.kBrushRadius);
+        brushEntity.setAttribute('height', '0.01');
+        brushEntity.setAttribute('rotation', '90 0 0');
         container.appendChild(brushEntity);
         return new PaintBrush(brushEntity);
     }
@@ -297,10 +306,32 @@ class Brush {
             }
         }
     }
+    updatePole(direction, from, to) {
+        this.xform.set(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1);
+        /* THREE.Object3D().up (=Y) default orientation for all objects */
+        this.orientation.lookAt(from, to, this.up);
+        /* rotation around axis X by -90 degrees
+         * matches the default orientation Y
+         * with the orientation of looking Z */
+        this.orientation.multiply(this.xform);
+        this.pole.object3D.rotation.set(0, 0, 0);
+        this.pole.object3D.applyMatrix4(this.orientation);
+        this.pole.object3D.position.copy(to);
+        this.leftMinusRight.multiplyScalar(0.5);
+        this.pole.object3D.position.add(this.leftMinusRight);
+        this.leftMinusRight.multiplyScalar(2.0);
+        // edge.position = new THREE.Vector3().addVectors(pointX, direction.multiplyScalar(0.5));
+    }
     tick(timeMs, timeDeltaMs) {
         this.leftMinusRight.copy(this.leftHand.position);
         this.leftMinusRight.sub(this.rightHand.position);
+        const xRad = Math.atan2(this.leftMinusRight.y, this.leftMinusRight.z);
+        const yRad = Math.atan2(this.leftMinusRight.z, this.leftMinusRight.x);
         const distance = this.leftMinusRight.length();
+        if (distance > 0) {
+            this.updatePole(this.leftMinusRight, this.leftHand.position, this.rightHand.position);
+            // this.pole.object3D.rotation.set(xRad, yRad, 0);
+        }
         this.leftMinusRight.normalize().multiplyScalar(Math.max(distance, 0.4));
         // this.leftMinusRight.normalize().multiplyScalar(0.4);
         this.leftBrush.obj.position.copy(this.leftHand.position);
@@ -497,6 +528,12 @@ class CritterSource {
         this.timeToNextCritterMs = 1000;
         this.critters = [];
         this.lizards = [];
+        this.showLizards = true;
+        const url = new URL(document.URL);
+        const numLizards = url.searchParams.get('lizards');
+        if (numLizards === '0') {
+            this.showLizards = false;
+        }
     }
     getCritters() {
         return this.critters;
@@ -521,6 +558,9 @@ class CritterSource {
     }
     tick(timeMs, timeDeltaMs) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!this.showLizards) {
+                return;
+            }
             this.timeToNextCritterMs -= timeDeltaMs;
             if (this.timeToNextCritterMs <= 0) {
                 this.timeToNextCritterMs = 15000;
@@ -529,7 +569,6 @@ class CritterSource {
                     ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
                     ` ${this.wall.wallZ}`);
                 turtleEnt.setAttribute('rotation', '90 0 0');
-                // TODO: We need to clean these up.
                 document.querySelector('a-scene').appendChild(turtleEnt);
                 const turtle = yield this.makeTurtle(turtleEnt, timeMs);
                 this.critters.push(turtle);
@@ -626,7 +665,7 @@ class EphemeralText {
     constructor(scene) {
         this.scene = scene;
         this.textItems = [];
-        this.kCapacity = 100;
+        this.kCapacity = 30;
         this.nextSlot = 0;
         for (let i = 0; i < this.kCapacity; ++i) {
             this.textItems.push(new TextBlurb(scene));
@@ -690,7 +729,7 @@ class Foot {
     getSupply() { return this.color != null ? 1 : 0; }
     removeSupply(n) { }
     tick(timeMs, timeDeltaMs) {
-        if (this.footObject3D.position.y < 0.003) {
+        if (this.footObject3D.position.y < 0.004) {
             if (!this.isDown) {
                 this.isDown = true;
                 this.footObject3D.getWorldPosition(this.worldPosition);
@@ -700,7 +739,7 @@ class Foot {
                 }
                 else if (wallColor !== null && this.color != wallColor) {
                     this.color = wallColor;
-                    this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
+                    // this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
                 }
             }
         }
@@ -710,7 +749,6 @@ class Foot {
     }
 }
 exports.Foot = Foot;
-Foot.kLift = 0.02;
 //# sourceMappingURL=foot.js.map
 
 /***/ }),
@@ -759,7 +797,7 @@ const wall_1 = __webpack_require__(649);
 const assetLibrary_1 = __webpack_require__(673);
 const critterSource_1 = __webpack_require__(107);
 const levelSpec_1 = __webpack_require__(811);
-const sft_1 = __webpack_require__(552);
+const sfx_1 = __webpack_require__(932);
 var brush = null;
 var wall = null;
 var critters = null;
@@ -821,7 +859,7 @@ AFRAME.registerComponent("go", {
             eText.addText("Let's go!", 0, 1.5, -0.6);
             score = new score_1.Score(document.querySelector('#score'));
             tickers.push(eText);
-            const sfx = yield sft_1.SFX.make();
+            const sfx = yield sfx_1.SFX.make();
             wall = new wall_1.Wall(new levelSpec_1.SmallLevel(), eText, score, assetLibrary, sfx);
             tickers.push(wall);
             critters = new critterSource_1.CritterSource(wall, assetLibrary, score, eText);
@@ -1349,7 +1387,7 @@ exports.Score = Score;
 
 /***/ }),
 
-/***/ 552:
+/***/ 932:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -1388,7 +1426,7 @@ const Tone = __importStar(__webpack_require__(784));
 const positron_1 = __webpack_require__(544);
 class SFX {
     constructor(pointConfig) {
-        this.pointTones = ['E4', 'G4', 'A4', 'C5', 'E5'];
+        this.pointTones = ['E4', 'A4', 'C5', 'G5'];
         this.pointSounds = [];
         for (const note of this.pointTones) {
             const p = new positron_1.Positron(pointConfig);
@@ -1415,11 +1453,10 @@ class SFX {
                 SFX.waitForContext(() => __awaiter(this, void 0, void 0, function* () {
                     console.log('starting...');
                     yield Tone.start();
-                    const synth = new Tone.Synth().toDestination();
-                    //play a middle 'C' for the duration of an 8th note
-                    synth.triggerAttackRelease("C4", "8n");
                     console.log('started.');
                     SFX.singleton = new SFX(positron_1.PositronConfig.patchPlucky);
+                    SFX.singleton.synth = new Tone.AMSynth().toDestination();
+                    SFX.singleton.synth.triggerAttackRelease("C4", "8n");
                     resolve(SFX.singleton);
                 }));
             });
@@ -1429,10 +1466,23 @@ class SFX {
         const i = Math.trunc(Math.random() * this.pointTones.length);
         this.pointSounds[i].triggerAttackRelease(this.pointTones[i], '8n', null);
     }
+    complete() {
+        const notes = [
+            'A4', 'C5', 'E5', 'G5',
+            'Bb4', 'Db5', 'F5', 'Ab5',
+            'B4', 'D5', 'F#5', 'A5',
+            'C5', 'E5', 'G5', 'B5', 'C6'
+        ];
+        let t = Tone.now();
+        for (const n of notes) {
+            SFX.singleton.synth.triggerAttackRelease(n, 0.4, t);
+            t += 0.050;
+        }
+    }
 }
 exports.SFX = SFX;
 SFX.singleton = null;
-//# sourceMappingURL=sft.js.map
+//# sourceMappingURL=sfx.js.map
 
 /***/ }),
 
@@ -1469,6 +1519,7 @@ class Wall {
         this.wallObject = null;
         this.wallPosition = null;
         this.tickers = [];
+        this.remaining = null;
         this.tmpPosition = new AFRAME.THREE.Vector3();
         const scene = document.querySelector('a-scene');
         const wall = document.createElement('a-entity');
@@ -1480,6 +1531,7 @@ class Wall {
         this.wallY = 1.2;
         this.kWallWidthMeters = level.width() * this.kMetersPerBlock;
         this.kWallHeightMeters = level.height() * this.kMetersPerBlock;
+        this.remaining = level.width() * level.height();
         this.wallTex = new AFRAME.THREE.CanvasTexture(this.canvas);
         const wallMaterial = new AFRAME.THREE.MeshBasicMaterial({
             map: this.wallTex, transparent: true
@@ -1602,10 +1654,12 @@ class Wall {
                 this.updateCanvas();
                 this.score.add(deltaPoints);
                 brush.removeSupply(deltaPoints);
-                for (let i = 0; i < deltaPoints; ++i) {
-                    this.sfx.point();
-                }
+                this.sfx.point();
                 this.eText.addText(`+${deltaPoints}`, sum_x / deltaPoints, sum_y / deltaPoints, this.wallZ + Math.random() * 0.05);
+                this.remaining -= deltaPoints;
+                if (this.remaining === 0) {
+                    this.sfx.complete();
+                }
             }
         }
         catch (e) {

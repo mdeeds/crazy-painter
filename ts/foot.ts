@@ -7,7 +7,6 @@ import { Wall } from "./wall";
 
 export class Foot implements Painter {
   private initialPosition: any;
-  private static kLift = 0.02;
   private color = null;
   constructor(private footObject3D: any, private wall: Wall,
     private assetLibrary: AssetLibrary) {
@@ -21,16 +20,17 @@ export class Foot implements Painter {
   private worldPosition = new AFRAME.THREE.Vector3();
   private isDown = true;
   tick(timeMs: number, timeDeltaMs: number) {
-    if (this.footObject3D.position.y < 0.003) {
+    if (this.footObject3D.position.y < 0.004) {
       if (!this.isDown) {
         this.isDown = true;
         this.footObject3D.getWorldPosition(this.worldPosition);
         const wallColor = this.wall.getColor(this.worldPosition);
         if (wallColor === null && this.color !== null) {
-          this.wall.paint(this.worldPosition, this.wall.kMetersPerBlock * 1.4, this)
+          this.wall.paint(this.worldPosition,
+            this.wall.kMetersPerBlock * 1.4, this)
         } else if (wallColor !== null && this.color != wallColor) {
           this.color = wallColor;
-          this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
+          // this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
         }
       }
     } else {

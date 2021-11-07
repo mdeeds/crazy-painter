@@ -48,12 +48,17 @@ export class Brush {
   private rightBrush: PaintBrush;
   private leftMinusRight: any;
   private readonly kBrushRadius = 0.1;
+  private pole: AFRAME.Entity;
 
   constructor(container: AFRAME.Entity, private leftHand, private rightHand,
     private wall: Wall, private critters: CritterSource) {
     this.leftBrush = this.makeBrush(container);
     this.rightBrush = this.makeBrush(container);
     this.leftMinusRight = new AFRAME.THREE.Vector3();
+    this.pole = document.createElement('a-cylinder');
+    this.pole.setAttribute('radius', '0.01');
+    this.pole.setAttribute('height', '2.0');
+    container.appendChild(this.pole);
   }
 
   getBrushes() {
@@ -61,8 +66,10 @@ export class Brush {
   }
 
   private makeBrush(container: AFRAME.Entity): PaintBrush {
-    const brushEntity = document.createElement('a-sphere');
+    const brushEntity = document.createElement('a-cylinder');
     brushEntity.setAttribute('radius', this.kBrushRadius);
+    brushEntity.setAttribute('height', '0.01');
+    brushEntity.setAttribute('rotation', '90 0 0');
     container.appendChild(brushEntity);
     return new PaintBrush(brushEntity);
   }
@@ -95,10 +102,41 @@ export class Brush {
     }
   }
 
+  private orientation = new AFRAME.THREE.Matrix4();
+  private up = new AFRAME.THREE.Object3D().up;
+  private xform = new AFRAME.THREE.Matrix4();
+  private updatePole(direction: any, from: any, to: any) {
+    this.xform.set(1, 0, 0, 0,
+      0, 0, 1, 0,
+      0, -1, 0, 0,
+      0, 0, 0, 1);
+    /* THREE.Object3D().up (=Y) default orientation for all objects */
+    this.orientation.lookAt(from, to, this.up);
+    /* rotation around axis X by -90 degrees 
+     * matches the default orientation Y 
+     * with the orientation of looking Z */
+    this.orientation.multiply(this.xform);
+    this.pole.object3D.rotation.set(0, 0, 0);
+    this.pole.object3D.applyMatrix4(this.orientation);
+    this.pole.object3D.position.copy(to);
+    this.leftMinusRight.multiplyScalar(0.5);
+    this.pole.object3D.position.add(this.leftMinusRight);
+    this.leftMinusRight.multiplyScalar(2.0);
+    // edge.position = new THREE.Vector3().addVectors(pointX, direction.multiplyScalar(0.5));
+  }
+
   tick(timeMs: number, timeDeltaMs: number) {
     this.leftMinusRight.copy(this.leftHand.position);
     this.leftMinusRight.sub(this.rightHand.position);
+
+    const xRad = Math.atan2(this.leftMinusRight.y, this.leftMinusRight.z);
+    const yRad = Math.atan2(this.leftMinusRight.z, this.leftMinusRight.x);
+
     const distance = this.leftMinusRight.length();
+    if (distance > 0) {
+      this.updatePole(this.leftMinusRight, this.leftHand.position, this.rightHand.position);
+      // this.pole.object3D.rotation.set(xRad, yRad, 0);
+    }
     this.leftMinusRight.normalize().multiplyScalar(Math.max(distance, 0.4));
     // this.leftMinusRight.normalize().multiplyScalar(0.4);
     this.leftBrush.obj.position.copy(this.leftHand.position);

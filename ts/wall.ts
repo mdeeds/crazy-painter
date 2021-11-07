@@ -5,7 +5,7 @@ import { EphemeralText } from "./ephemeralText";
 import { levelSpec } from "./levelSpec";
 import { Painter } from "./painter";
 import { Score } from "./score";
-import { SFX } from "./sft";
+import { SFX } from "./sfx";
 
 export class Wall implements Ticker {
   private canvas: HTMLCanvasElement = null;
@@ -22,6 +22,7 @@ export class Wall implements Ticker {
   private readonly wallObject = null;
   private wallPosition = null;
   private tickers: Ticker[] = [];
+  private remaining: number = null;
 
   constructor(private level: levelSpec, private eText: EphemeralText,
     private score: Score, private assetLibrary: AssetLibrary,
@@ -37,6 +38,7 @@ export class Wall implements Ticker {
 
     this.kWallWidthMeters = level.width() * this.kMetersPerBlock;
     this.kWallHeightMeters = level.height() * this.kMetersPerBlock;
+    this.remaining = level.width() * level.height();
 
     this.wallTex = new AFRAME.THREE.CanvasTexture(this.canvas);
     const wallMaterial = new AFRAME.THREE.MeshBasicMaterial({
@@ -176,12 +178,14 @@ export class Wall implements Ticker {
         this.updateCanvas();
         this.score.add(deltaPoints);
         brush.removeSupply(deltaPoints);
-        for (let i = 0; i < deltaPoints; ++i) {
-          this.sfx.point();
-        }
+        this.sfx.point();
         this.eText.addText(`+${deltaPoints}`,
           sum_x / deltaPoints, sum_y / deltaPoints,
           this.wallZ + Math.random() * 0.05);
+        this.remaining -= deltaPoints;
+        if (this.remaining === 0) {
+          this.sfx.complete();
+        }
       }
     } catch (e) {
       Debug.set(`error: ${e}`);

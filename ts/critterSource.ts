@@ -15,8 +15,15 @@ export class CritterSource {
 
   private lizards: AnimatedObject[] = [];
 
+  private showLizards = true;
+
   constructor(private wall: Wall, private assetLibrary: AssetLibrary,
     private score: Score, private eText: EphemeralText) {
+    const url = new URL(document.URL);
+    const numLizards = url.searchParams.get('lizards');
+    if (numLizards === '0') {
+      this.showLizards = false;
+    }
   }
 
   public getCritters(): Critter[] {
@@ -46,6 +53,9 @@ export class CritterSource {
   }
 
   async tick(timeMs: number, timeDeltaMs: number) {
+    if (!this.showLizards) {
+      return;
+    }
     this.timeToNextCritterMs -= timeDeltaMs;
     if (this.timeToNextCritterMs <= 0) {
       this.timeToNextCritterMs = 15000;
@@ -55,7 +65,6 @@ export class CritterSource {
         ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
         ` ${this.wall.wallZ}`);
       turtleEnt.setAttribute('rotation', '90 0 0');
-      // TODO: We need to clean these up.
       document.querySelector('a-scene').appendChild(turtleEnt);
       const turtle = await this.makeTurtle(
         turtleEnt, timeMs);
