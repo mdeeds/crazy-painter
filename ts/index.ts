@@ -10,7 +10,7 @@ import { AssetLibrary } from "./assetLibrary";
 import { CritterSource } from "./critterSource";
 import { LargeLevel, SmallLevel } from "./levelSpec";
 import { AnimatedObject } from "./animatedObject";
-import { SFX } from "./sft";
+import { SFX } from "./sfx";
 
 var brush = null;
 var wall: Wall = null;

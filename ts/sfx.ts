@@ -4,6 +4,7 @@ import { Positron, PositronConfig } from "./positron";
 export class SFX {
   private pointTones = ['E4', 'A4', 'C5', 'G5']
   private pointSounds: Positron[] = [];
+  private synth: Tone.AMSynth;
   private constructor(pointConfig: PositronConfig) {
     for (const note of this.pointTones) {
       const p = new Positron(pointConfig);
@@ -31,11 +32,10 @@ export class SFX {
       SFX.waitForContext(async () => {
         console.log('starting...');
         await Tone.start();
-        const synth = new Tone.Synth().toDestination();
-        //play a middle 'C' for the duration of an 8th note
-        synth.triggerAttackRelease("C4", "8n");
         console.log('started.');
         SFX.singleton = new SFX(PositronConfig.patchPlucky);
+        SFX.singleton.synth = new Tone.AMSynth().toDestination();
+        SFX.singleton.synth.triggerAttackRelease("C4", "8n");
         resolve(SFX.singleton);
       });
     });
@@ -45,5 +45,19 @@ export class SFX {
     const i = Math.trunc(Math.random() * this.pointTones.length);
     this.pointSounds[i].triggerAttackRelease(
       this.pointTones[i], '8n', null);
+  }
+
+  complete() {
+    const notes = [
+      'A4', 'C5', 'E5', 'G5',
+      'Bb4', 'Db5', 'F5', 'Ab5',
+      'B4', 'D5', 'F#5', 'A5',
+      'C5', 'E5', 'G5', 'B5', 'C6'
+    ];
+    let t = Tone.now();
+    for (const n of notes) {
+      SFX.singleton.synth.triggerAttackRelease(n, 0.4, t);
+      t += 0.050;
+    }
   }
 }
