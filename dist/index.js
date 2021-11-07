@@ -624,8 +624,8 @@ class Debug {
         const container = document.querySelector('a-camera');
         Debug.text = document.createElement('a-entity');
         Debug.text.setAttribute('text', `value: ${new Date().toLocaleString()};`);
-        Debug.text.setAttribute('width', '0.35');
-        Debug.text.setAttribute('position', '0 0.2 -0.7');
+        Debug.text.setAttribute('width', '0.25');
+        Debug.text.setAttribute('position', '0 0.2 -0.9');
         container.appendChild(Debug.text);
     }
     static set(message) {
