@@ -257,16 +257,25 @@ class Brush {
         this.critters = critters;
         this.kBrushRadius = 0.1;
         this.brushPosition = new AFRAME.THREE.Vector3();
+        this.orientation = new AFRAME.THREE.Matrix4();
+        this.up = new AFRAME.THREE.Object3D().up;
+        this.xform = new AFRAME.THREE.Matrix4();
         this.leftBrush = this.makeBrush(container);
         this.rightBrush = this.makeBrush(container);
         this.leftMinusRight = new AFRAME.THREE.Vector3();
+        this.pole = document.createElement('a-cylinder');
+        this.pole.setAttribute('radius', '0.01');
+        this.pole.setAttribute('height', '2.0');
+        container.appendChild(this.pole);
     }
     getBrushes() {
         return [this.leftBrush, this.rightBrush];
     }
     makeBrush(container) {
-        const brushEntity = document.createElement('a-sphere');
+        const brushEntity = document.createElement('a-cylinder');
         brushEntity.setAttribute('radius', this.kBrushRadius);
+        brushEntity.setAttribute('height', '0.01');
+        brushEntity.setAttribute('rotation', '90 0 0');
         container.appendChild(brushEntity);
         return new PaintBrush(brushEntity);
     }
@@ -297,10 +306,32 @@ class Brush {
             }
         }
     }
+    updatePole(direction, from, to) {
+        this.xform.set(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1);
+        /* THREE.Object3D().up (=Y) default orientation for all objects */
+        this.orientation.lookAt(from, to, this.up);
+        /* rotation around axis X by -90 degrees
+         * matches the default orientation Y
+         * with the orientation of looking Z */
+        this.orientation.multiply(this.xform);
+        this.pole.object3D.rotation.set(0, 0, 0);
+        this.pole.object3D.applyMatrix4(this.orientation);
+        this.pole.object3D.position.clone(to);
+        // this.leftMinusRight.multiplyScalar(0.5);
+        // this.pole.object3D.position.add(this.leftMinusRight);
+        // this.leftMinusRight.multiplyScalar(2.0);
+        // edge.position = new THREE.Vector3().addVectors(pointX, direction.multiplyScalar(0.5));
+    }
     tick(timeMs, timeDeltaMs) {
         this.leftMinusRight.copy(this.leftHand.position);
         this.leftMinusRight.sub(this.rightHand.position);
+        const xRad = Math.atan2(this.leftMinusRight.y, this.leftMinusRight.z);
+        const yRad = Math.atan2(this.leftMinusRight.z, this.leftMinusRight.x);
         const distance = this.leftMinusRight.length();
+        if (distance > 0) {
+            this.updatePole(this.leftMinusRight, this.leftHand.position, this.rightHand.position);
+            // this.pole.object3D.rotation.set(xRad, yRad, 0);
+        }
         this.leftMinusRight.normalize().multiplyScalar(Math.max(distance, 0.4));
         // this.leftMinusRight.normalize().multiplyScalar(0.4);
         this.leftBrush.obj.position.copy(this.leftHand.position);
@@ -538,7 +569,6 @@ class CritterSource {
                     ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
                     ` ${this.wall.wallZ}`);
                 turtleEnt.setAttribute('rotation', '90 0 0');
-                // TODO: We need to clean these up.
                 document.querySelector('a-scene').appendChild(turtleEnt);
                 const turtle = yield this.makeTurtle(turtleEnt, timeMs);
                 this.critters.push(turtle);
@@ -635,7 +665,7 @@ class EphemeralText {
     constructor(scene) {
         this.scene = scene;
         this.textItems = [];
-        this.kCapacity = 100;
+        this.kCapacity = 30;
         this.nextSlot = 0;
         for (let i = 0; i < this.kCapacity; ++i) {
             this.textItems.push(new TextBlurb(scene));
@@ -699,7 +729,7 @@ class Foot {
     getSupply() { return this.color != null ? 1 : 0; }
     removeSupply(n) { }
     tick(timeMs, timeDeltaMs) {
-        if (this.footObject3D.position.y < 0.003) {
+        if (this.footObject3D.position.y < 0.004) {
             if (!this.isDown) {
                 this.isDown = true;
                 this.footObject3D.getWorldPosition(this.worldPosition);
@@ -709,7 +739,7 @@ class Foot {
                 }
                 else if (wallColor !== null && this.color != wallColor) {
                     this.color = wallColor;
-                    this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
+                    // this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
                 }
             }
         }
@@ -719,7 +749,6 @@ class Foot {
     }
 }
 exports.Foot = Foot;
-Foot.kLift = 0.02;
 //# sourceMappingURL=foot.js.map
 
 /***/ }),
@@ -1397,7 +1426,7 @@ const Tone = __importStar(__webpack_require__(784));
 const positron_1 = __webpack_require__(544);
 class SFX {
     constructor(pointConfig) {
-        this.pointTones = ['E4', 'G4', 'A4', 'C5', 'E5'];
+        this.pointTones = ['E4', 'A4', 'C5', 'G5'];
         this.pointSounds = [];
         for (const note of this.pointTones) {
             const p = new positron_1.Positron(pointConfig);
@@ -1611,9 +1640,7 @@ class Wall {
                 this.updateCanvas();
                 this.score.add(deltaPoints);
                 brush.removeSupply(deltaPoints);
-                for (let i = 0; i < deltaPoints; ++i) {
-                    this.sfx.point();
-                }
+                this.sfx.point();
                 this.eText.addText(`+${deltaPoints}`, sum_x / deltaPoints, sum_y / deltaPoints, this.wallZ + Math.random() * 0.05);
             }
         }
