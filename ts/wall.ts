@@ -176,9 +176,7 @@ export class Wall implements Ticker {
         this.updateCanvas();
         this.score.add(deltaPoints);
         brush.removeSupply(deltaPoints);
-        for (let i = 0; i < deltaPoints; ++i) {
-          this.sfx.point();
-        }
+        this.sfx.point();
         this.eText.addText(`+${deltaPoints}`,
           sum_x / deltaPoints, sum_y / deltaPoints,
           this.wallZ + Math.random() * 0.05);

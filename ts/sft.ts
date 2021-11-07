@@ -2,7 +2,7 @@ import * as Tone from "tone";
 import { Positron, PositronConfig } from "./positron";
 
 export class SFX {
-  private pointTones = ['E4', 'G4', 'A4', 'C5', 'E5']
+  private pointTones = ['E4', 'A4', 'C5', 'G5']
   private pointSounds: Positron[] = [];
   private constructor(pointConfig: PositronConfig) {
     for (const note of this.pointTones) {
