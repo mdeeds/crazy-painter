@@ -506,12 +506,13 @@ class Critter {
         this.parts.body.entity.object3D.position.copy(this.targetPosition);
         // container.appendChild(parts.body.entity);
         // body.object3D.position.z = wall.wallZ;
-        this.setNewTarget();
+        // The first sprint needs to be short so the player has a chance.
+        this.setNewTarget(0.2);
     }
     isDone() { return this.done; }
     remove() { this.container.remove(); }
-    setNewTarget() {
-        const newZ = this.targetPosition.z - Math.random();
+    setNewTarget(maxHeight = 1.0) {
+        const newZ = this.targetPosition.z - Math.random() * maxHeight;
         this.targetPosition.set(Math.random() * 2 - 1, 0, newZ);
         const currentPos = this.parts.body.entity.object3D.position;
         const dz = this.targetPosition.z - currentPos.z;
@@ -1767,6 +1768,18 @@ class Wall {
                 }
             }
         }
+        this.remaining = 0;
+        for (let i = 0; i < this.level.width(); ++i) {
+            for (let j = 0; j < this.level.height(); ++j) {
+                if (this.level.paintColorNumber(i, j) !== this.blocks[i + j * this.level.width()]) {
+                    this.remaining++;
+                }
+            }
+        }
+        if (this.remaining === 0) {
+            this.done = true;
+            this.sfx.complete();
+        }
         this.wallTex.needsUpdate = true;
     }
     worldXForI(i) {
@@ -1878,11 +1891,6 @@ class Wall {
             else if (paintState.deltaPoints < 0) {
                 this.eText.addText(`${paintState.deltaPoints}`, paintState.sum_x / paintState.paintUsed, paintState.sum_y / paintState.paintUsed, this.wallZ + Math.random() * 0.05, 'down');
                 this.sfx.minusPoint();
-            }
-            this.remaining -= paintState.deltaPoints;
-            if (this.remaining === 0) {
-                this.done = true;
-                this.sfx.complete();
             }
         }
     }

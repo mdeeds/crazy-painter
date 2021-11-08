@@ -118,6 +118,19 @@ export class Wall implements Ticker {
         }
       }
     }
+    this.remaining = 0;
+    for (let i = 0; i < this.level.width(); ++i) {
+      for (let j = 0; j < this.level.height(); ++j) {
+        if (this.level.paintColorNumber(i, j) !== this.blocks[i + j * this.level.width()]) {
+          this.remaining++;
+        }
+      }
+    }
+    if (this.remaining === 0) {
+      this.done = true;
+      this.sfx.complete();
+    }
+
     this.wallTex.needsUpdate = true;
   }
 
@@ -239,11 +252,6 @@ export class Wall implements Ticker {
           paintState.sum_x / paintState.paintUsed, paintState.sum_y / paintState.paintUsed,
           this.wallZ + Math.random() * 0.05, 'down');
         this.sfx.minusPoint();
-      }
-      this.remaining -= paintState.deltaPoints;
-      if (this.remaining === 0) {
-        this.done = true;
-        this.sfx.complete();
       }
     }
   }
