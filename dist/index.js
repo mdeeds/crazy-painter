@@ -652,10 +652,12 @@ class TextBlurb {
         this.container = container;
         this.remainingTimeMs = 1000;
         this.done = false;
+        this.floatDirection = 'down';
         this.entity = document.createElement('a-entity');
         this.container.appendChild(this.entity);
     }
-    set(message, x, y, z) {
+    set(message, x, y, z, floatDirection) {
+        this.floatDirection = floatDirection;
         this.entity.setAttribute('visible', 'true');
         this.remainingTimeMs = 1000;
         this.entity.setAttribute('text', `value: ${message}; align: center; wrap-count: 8; width: 0.2`);
@@ -676,7 +678,8 @@ class TextBlurb {
             this.dispose();
         }
         else {
-            this.entity.object3D.position.y += timeDeltaMs / 3000;
+            const delta = (this.floatDirection === 'down' ? -1 : 1) * timeDeltaMs / 3000;
+            this.entity.object3D.position.y += delta;
         }
     }
 }
@@ -690,8 +693,8 @@ class EphemeralText {
             this.textItems.push(new TextBlurb(scene));
         }
     }
-    addText(message, x, y, z) {
-        this.textItems[this.nextSlot].set(message, x, y, z);
+    addText(message, x, y, z, floatDirection = 'up') {
+        this.textItems[this.nextSlot].set(message, x, y, z, floatDirection);
         this.nextSlot = (this.nextSlot + 1) % this.kCapacity;
     }
     tick(timeMs, timeDeltaMs) {
@@ -1502,6 +1505,16 @@ class SFX {
         const i = Math.trunc(Math.random() * this.pointTones.length);
         this.pointSounds[i].triggerAttackRelease(this.pointTones[i], '8n', null);
     }
+    minusPoint() {
+        const notes = [
+            'C3', 'C3', 'B2'
+        ];
+        let t = Tone.now();
+        for (const n of notes) {
+            SFX.singleton.synth.triggerAttackRelease(n, 0.4, t);
+            t += 0.050;
+        }
+    }
     complete() {
         const notes = [
             'A4', 'C5', 'E5', 'G5',
@@ -1617,6 +1630,17 @@ class Wall {
                 }
             }
         }
+        ctx.lineWidth = 2;
+        for (const [colorIndex, color] of this.colorMap.entries()) {
+            ctx.strokeStyle = color;
+            for (let i = 0; i < this.level.width(); ++i) {
+                for (let j = 0; j < this.level.height(); ++j) {
+                    if (this.level.paintColorNumber(i, j) === colorIndex) {
+                        ctx.strokeRect(i * boxWidth + 1.5, j * boxWidth + 1.5, boxWidth - 3, boxWidth - 3);
+                    }
+                }
+            }
+        }
         this.wallTex.needsUpdate = true;
     }
     worldXForI(i) {
@@ -1656,9 +1680,10 @@ class Wall {
             const brushRadius = radius / this.kMetersPerBlock;
             let hasChanges = false;
             let deltaPoints = 0;
+            let paintUsed = 0;
             let sum_x = 0;
             let sum_y = 0;
-            const colorIndex = this.level.getIndexForColor(brush.getColor());
+            const newColor = this.level.getIndexForColor(brush.getColor());
             for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
                 if (i < 0 || i >= this.level.width()) {
                     continue;
@@ -1672,18 +1697,26 @@ class Wall {
                     }
                     const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
                     if (r2 < brushRadius * brushRadius) {
-                        if (this.blocks[i + j * this.level.width()] !== colorIndex) {
+                        const oldColor = this.blocks[i + j * this.level.width()];
+                        const desiredColor = this.level.paintColorNumber(i, j);
+                        if (oldColor !== newColor) {
                             if (Math.random() * 20 > brush.getSupply()) {
                                 continue;
                             }
-                            this.blocks[i + j * this.level.width()] = colorIndex;
+                            this.blocks[i + j * this.level.width()] = newColor;
+                            if (newColor === desiredColor) {
+                                ++deltaPoints;
+                            }
+                            else if (oldColor === desiredColor) {
+                                --deltaPoints;
+                            }
                             // TODO: award points if the color is correct.
                             // TODO: deduct points if color is incorrect.
                             const wx = this.worldXForI(i);
                             const wy = this.worldYForJ(j);
                             sum_x += wx;
                             sum_y += wy;
-                            ++deltaPoints;
+                            ++paintUsed;
                             hasChanges = true;
                         }
                     }
@@ -1693,8 +1726,14 @@ class Wall {
                 this.updateCanvas();
                 this.score.add(deltaPoints);
                 brush.removeSupply(deltaPoints);
-                this.sfx.point();
-                this.eText.addText(`+${deltaPoints}`, sum_x / deltaPoints, sum_y / deltaPoints, this.wallZ + Math.random() * 0.05);
+                if (deltaPoints > 0) {
+                    this.sfx.point();
+                    this.eText.addText(`+${deltaPoints}`, sum_x / paintUsed, sum_y / paintUsed, this.wallZ + Math.random() * 0.05);
+                }
+                else if (deltaPoints < 0) {
+                    this.eText.addText(`${deltaPoints}`, sum_x / paintUsed, sum_y / paintUsed, this.wallZ + Math.random() * 0.05, 'down');
+                    this.sfx.minusPoint();
+                }
                 this.remaining -= deltaPoints;
                 if (this.remaining === 0) {
                     this.sfx.complete();

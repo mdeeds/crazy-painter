@@ -5,12 +5,15 @@ class TextBlurb {
   private remainingTimeMs = 1000;
   private entity: AFRAME.Entity;
   private done: boolean = false;
+  private floatDirection: FloatDirection = 'down';
   constructor(private container: AFRAME.Entity) {
     this.entity = document.createElement('a-entity');
     this.container.appendChild(this.entity);
   }
 
-  set(message: string, x: number, y: number, z: number) {
+  set(message: string, x: number, y: number, z: number,
+    floatDirection: FloatDirection) {
+    this.floatDirection = floatDirection;
     this.entity.setAttribute('visible', 'true');
     this.remainingTimeMs = 1000;
     this.entity.setAttribute('text',
@@ -34,10 +37,14 @@ class TextBlurb {
     if (this.remainingTimeMs <= 0) {
       this.dispose();
     } else {
-      this.entity.object3D.position.y += timeDeltaMs / 3000;
+      const delta =
+        (this.floatDirection === 'down' ? -1 : 1) * timeDeltaMs / 3000;
+      this.entity.object3D.position.y += delta;
     }
   }
 }
+
+export type FloatDirection = 'up' | 'down';
 
 export class EphemeralText {
   private textItems: TextBlurb[] = [];
@@ -49,8 +56,9 @@ export class EphemeralText {
     }
   }
 
-  addText(message: string, x: number, y: number, z: number) {
-    this.textItems[this.nextSlot].set(message, x, y, z);
+  addText(message: string, x: number, y: number, z: number,
+    floatDirection: FloatDirection = 'up') {
+    this.textItems[this.nextSlot].set(message, x, y, z, floatDirection);
     this.nextSlot = (this.nextSlot + 1) % this.kCapacity;
   }
 

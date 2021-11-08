@@ -88,7 +88,6 @@ export class Wall implements Ticker {
     const ctx = this.canvas.getContext('2d');
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     const boxWidth = this.kPixelsPerBlock;
-
     for (const [colorIndex, color] of this.colorMap.entries()) {
       ctx.fillStyle = color;
       for (let i = 0; i < this.level.width(); ++i) {
@@ -96,6 +95,18 @@ export class Wall implements Ticker {
           if (this.blocks[i + j * this.level.width()] === colorIndex) {
             ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1,
               boxWidth - 2, boxWidth - 2);
+          }
+        }
+      }
+    }
+    ctx.lineWidth = 2;
+    for (const [colorIndex, color] of this.colorMap.entries()) {
+      ctx.strokeStyle = color;
+      for (let i = 0; i < this.level.width(); ++i) {
+        for (let j = 0; j < this.level.height(); ++j) {
+          if (this.level.paintColorNumber(i, j) === colorIndex) {
+            ctx.strokeRect(i * boxWidth + 1.5, j * boxWidth + 1.5,
+              boxWidth - 3, boxWidth - 3);
           }
         }
       }
@@ -144,9 +155,10 @@ export class Wall implements Ticker {
       const brushRadius = radius / this.kMetersPerBlock;
       let hasChanges = false;
       let deltaPoints = 0;
+      let paintUsed = 0;
       let sum_x = 0;
       let sum_y = 0;
-      const colorIndex = this.level.getIndexForColor(brush.getColor());
+      const newColor = this.level.getIndexForColor(brush.getColor());
       for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
         if (i < 0 || i >= this.level.width()) {
           continue;
@@ -160,18 +172,25 @@ export class Wall implements Ticker {
           }
           const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
           if (r2 < brushRadius * brushRadius) {
-            if (this.blocks[i + j * this.level.width()] !== colorIndex) {
+            const oldColor = this.blocks[i + j * this.level.width()];
+            const desiredColor = this.level.paintColorNumber(i, j);
+            if (oldColor !== newColor) {
               if (Math.random() * 20 > brush.getSupply()) {
                 continue;
               }
-              this.blocks[i + j * this.level.width()] = colorIndex;
+              this.blocks[i + j * this.level.width()] = newColor;
+              if (newColor === desiredColor) {
+                ++deltaPoints;
+              } else if (oldColor === desiredColor) {
+                --deltaPoints;
+              }
               // TODO: award points if the color is correct.
               // TODO: deduct points if color is incorrect.
               const wx = this.worldXForI(i);
               const wy = this.worldYForJ(j);
               sum_x += wx;
               sum_y += wy;
-              ++deltaPoints;
+              ++paintUsed;
               hasChanges = true;
             }
           }
@@ -181,10 +200,17 @@ export class Wall implements Ticker {
         this.updateCanvas();
         this.score.add(deltaPoints);
         brush.removeSupply(deltaPoints);
-        this.sfx.point();
-        this.eText.addText(`+${deltaPoints}`,
-          sum_x / deltaPoints, sum_y / deltaPoints,
-          this.wallZ + Math.random() * 0.05);
+        if (deltaPoints > 0) {
+          this.sfx.point();
+          this.eText.addText(`+${deltaPoints}`,
+            sum_x / paintUsed, sum_y / paintUsed,
+            this.wallZ + Math.random() * 0.05);
+        } else if (deltaPoints < 0) {
+          this.eText.addText(`${deltaPoints}`,
+            sum_x / paintUsed, sum_y / paintUsed,
+            this.wallZ + Math.random() * 0.05, 'down');
+          this.sfx.minusPoint();
+        }
         this.remaining -= deltaPoints;
         if (this.remaining === 0) {
           this.sfx.complete();
