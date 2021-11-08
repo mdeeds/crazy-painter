@@ -1,8 +1,8 @@
 import { CritterSource } from "./critterSource";
-import { levelSpec } from "./levelSpec";
+import { LevelSpec } from "./levelSpec";
 
 export class Level {
-  constructor(private levelSpec: levelSpec,
+  constructor(private levelSpec: LevelSpec,
     private critterSource: CritterSource) {
   }
 

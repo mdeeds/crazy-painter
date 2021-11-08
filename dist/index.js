@@ -100,6 +100,13 @@ class AnimatedObject {
             this.mixer.update(timeDeltaMs / 1000);
         }
     }
+    isDone() {
+        // TODO
+        return false;
+    }
+    remove() {
+        this.entity.remove();
+    }
 }
 exports.AnimatedObject = AnimatedObject;
 //# sourceMappingURL=animatedObject.js.map
@@ -254,10 +261,10 @@ class PaintBrush {
 }
 exports.PaintBrush = PaintBrush;
 class Brush {
-    constructor(container, color, leftHand, rightHand, wall, critters) {
+    constructor(container, color, leftHand, rightHand, wallHandle, critters) {
         this.leftHand = leftHand;
         this.rightHand = rightHand;
-        this.wall = wall;
+        this.wallHandle = wallHandle;
         this.critters = critters;
         this.kBrushRadius = 0.1;
         this.brushPosition = new AFRAME.THREE.Vector3();
@@ -289,14 +296,12 @@ class Brush {
         if (vec.y < 0) {
             vec.y = 0;
         }
-        if (vec.z - this.kBrushRadius < this.wall.wallZ) {
+        if (vec.z <= this.wallHandle.wall.wallZ) {
+            vec.z = this.wallHandle.wall.wallZ;
             obj.getWorldPosition(this.brushPosition);
-            if (vec.z <= this.wall.wallZ) {
-                this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
-                vec.z = this.wall.wallZ;
-                for (const c of this.critters.getCritters()) {
-                    c.squash(this.brushPosition);
-                }
+            this.wallHandle.wall.paint(this.brushPosition, this.kBrushRadius, brush);
+            for (const c of this.critters.getCritters()) {
+                c.squash(this.brushPosition);
             }
         }
     }
@@ -321,12 +326,12 @@ class Brush {
         this.leftMinusRight.sub(this.rightHand.position);
         const xRad = Math.atan2(this.leftMinusRight.y, this.leftMinusRight.z);
         const yRad = Math.atan2(this.leftMinusRight.z, this.leftMinusRight.x);
-        const distance = this.leftMinusRight.length();
+        const distance = this.leftMinusRight.length() * 2;
         if (distance > 0) {
             this.updatePole(this.leftMinusRight, this.leftHand.position, this.rightHand.position);
             // this.pole.object3D.rotation.set(xRad, yRad, 0);
         }
-        this.leftMinusRight.normalize().multiplyScalar(Math.max(distance, 0.4));
+        this.leftMinusRight.setLength(Math.max(distance, 0.4));
         // this.leftMinusRight.normalize().multiplyScalar(0.4);
         this.leftBrush.obj.position.copy(this.leftHand.position);
         this.leftBrush.obj.position.add(this.leftMinusRight);
@@ -431,6 +436,12 @@ class Can {
             }
         }
     }
+    isDone() {
+        return false;
+    }
+    remove() {
+        throw new Error('Not implementd.');
+    }
 }
 exports.Can = Can;
 //# sourceMappingURL=can.js.map
@@ -473,44 +484,74 @@ class CritterParts {
 }
 exports.CritterParts = CritterParts;
 class Critter {
-    constructor(container, parts, wall, spawnTimeMs, score, eText, assetLibrary) {
+    constructor(container, parts, wallHandle, spawnTimeMs, score, eText, assetLibrary) {
         this.container = container;
         this.parts = parts;
-        this.wall = wall;
+        this.wallHandle = wallHandle;
         this.spawnTimeMs = spawnTimeMs;
         this.score = score;
         this.eText = eText;
         this.assetLibrary = assetLibrary;
         this.feet = [];
         this.done = false;
+        this.targetPosition = new AFRAME.THREE.Vector3();
+        this.speedMps = 2;
+        this.timeToNextSprintMs = 0;
         this.worldPosition = new AFRAME.THREE.Vector3();
+        this.direction = new AFRAME.THREE.Vector3();
         for (const [i, f] of parts.feet.entries()) {
-            this.feet.push(new foot_1.Foot(f, this.wall, this.assetLibrary));
+            this.feet.push(new foot_1.Foot(f, this.wallHandle, this.assetLibrary));
         }
+        this.targetPosition.set(Math.random() * 2 - 1, 0, 1);
+        this.parts.body.entity.object3D.position.copy(this.targetPosition);
         // container.appendChild(parts.body.entity);
         // body.object3D.position.z = wall.wallZ;
+        this.setNewTarget();
     }
     isDone() { return this.done; }
     remove() { this.container.remove(); }
+    setNewTarget() {
+        const newZ = this.targetPosition.z - Math.random();
+        this.targetPosition.set(Math.random() * 2 - 1, 0, newZ);
+        const currentPos = this.parts.body.entity.object3D.position;
+        const dz = this.targetPosition.z - currentPos.z;
+        const dx = this.targetPosition.x - currentPos.x;
+        this.parts.body.entity.object3D.rotation.y = Math.atan2(dz, -dx);
+    }
     squash(worldPosition) {
-        this.container.object3D.getWorldPosition(this.worldPosition);
+        this.parts.body.entity.object3D.getWorldPosition(this.worldPosition);
         if (worldPosition.distanceTo(this.worldPosition) < 0.2) {
-            this.score.add(500);
-            this.eText.addText("+500", this.worldPosition.x, this.worldPosition.y, this.worldPosition.z);
             this.done = true;
         }
     }
     tick(timeMs, timeDeltaMs) {
-        // TODO: calculate x-position based on spawnTimeMs.
-        const secondsElapsed = (timeMs - this.spawnTimeMs) / 1000;
-        const mps = (0.35 - 0.15) / (30 / 24);
-        const x = 0.5 + this.wall.kWallWidthMeters / 2 - mps * secondsElapsed;
-        if (x < -this.wall.kWallWidthMeters / 2 - 0.5) {
-            this.done = true;
+        if (this.timeToNextSprintMs > 0) {
+            this.timeToNextSprintMs -= timeDeltaMs;
+            if (this.timeToNextSprintMs <= 0) {
+                this.setNewTarget();
+                this.speedMps = 2;
+            }
         }
-        this.parts.body.entity.object3D.position.x = x;
-        for (const f of this.feet) {
-            f.tick(timeMs, timeDeltaMs);
+        else {
+            this.direction.copy(this.targetPosition);
+            const currentPos = this.parts.body.entity.object3D.position;
+            this.direction.sub(currentPos);
+            const remainingDistance = this.direction.length();
+            let stepSize = this.speedMps * timeDeltaMs / 1000;
+            if (stepSize >= remainingDistance) {
+                stepSize = remainingDistance;
+                this.speedMps = 0;
+                this.timeToNextSprintMs = Math.random() * 500 + 500;
+            }
+            this.direction.setLength(stepSize);
+            currentPos.add(this.direction);
+            if (currentPos.z < -3.0) {
+                this.done = true;
+            }
+            const animationMps = (0.35 - 0.15) / (30 / 24);
+            for (const f of this.feet) {
+                f.tick(timeMs, timeDeltaMs);
+            }
         }
     }
 }
@@ -539,8 +580,8 @@ exports.CritterSource = void 0;
 const animatedObject_1 = __webpack_require__(143);
 const critter_1 = __webpack_require__(918);
 class CritterSource {
-    constructor(wall, assetLibrary, score, eText) {
-        this.wall = wall;
+    constructor(wallHandle, assetLibrary, score, eText) {
+        this.wallHandle = wallHandle;
         this.assetLibrary = assetLibrary;
         this.score = score;
         this.eText = eText;
@@ -557,7 +598,7 @@ class CritterSource {
     getCritters() {
         return this.critters;
     }
-    makeTurtle(container, spawnTime) {
+    makeLizard(container, spawnTime) {
         return __awaiter(this, void 0, void 0, function* () {
             const lizard = yield animatedObject_1.AnimatedObject.make('obj/lizard.gltf', this.assetLibrary, container);
             this.lizards.push(lizard);
@@ -571,7 +612,7 @@ class CritterSource {
                     parts.feet[i] = node;
                 }
             });
-            const critter = new critter_1.Critter(container, parts, this.wall, spawnTime, this.score, this.eText, this.assetLibrary);
+            const critter = new critter_1.Critter(container, parts, this.wallHandle, spawnTime, this.score, this.eText, this.assetLibrary);
             return critter;
         });
     }
@@ -582,14 +623,12 @@ class CritterSource {
             }
             this.timeToNextCritterMs -= timeDeltaMs;
             if (this.timeToNextCritterMs <= 0) {
-                this.timeToNextCritterMs = 15000;
+                this.timeToNextCritterMs = 3000;
                 const turtleEnt = document.createElement('a-entity');
-                turtleEnt.setAttribute('position', `0` +
-                    ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
-                    ` ${this.wall.wallZ}`);
+                turtleEnt.setAttribute('position', `0 ${this.wallHandle.wall.wallY} ${this.wallHandle.wall.wallZ}`);
                 turtleEnt.setAttribute('rotation', '90 0 0');
                 document.querySelector('a-scene').appendChild(turtleEnt);
-                const turtle = yield this.makeTurtle(turtleEnt, timeMs);
+                const turtle = yield this.makeLizard(turtleEnt, timeMs);
                 this.critters.push(turtle);
             }
             for (const critter of this.critters) {
@@ -623,19 +662,25 @@ class Debug {
     static init() {
         const container = document.querySelector('a-camera');
         Debug.text = document.createElement('a-entity');
-        Debug.text.setAttribute('text', `value: ${new Date().toLocaleString()};`);
+        this.set('ts', `${new Date().toLocaleString()}`);
         Debug.text.setAttribute('width', '0.25');
         Debug.text.setAttribute('position', '0 0.2 -0.9');
         container.appendChild(Debug.text);
     }
-    static set(message) {
+    static set(key, message) {
+        this.messages.set(key, message);
+        let text = "";
         if (Debug.text) {
-            Debug.text.setAttribute('text', `value: ${message};`);
+            for (const [k, v] of this.messages.entries()) {
+                text = text + `${k}: ${v}\n`;
+            }
+            Debug.text.setAttribute('text', `value: ${text};`);
         }
     }
 }
 exports.Debug = Debug;
 Debug.text = null;
+Debug.messages = new Map();
 //# sourceMappingURL=debug.js.map
 
 /***/ }),
@@ -704,6 +749,12 @@ class EphemeralText {
             }
         }
     }
+    isDone() {
+        return false;
+    }
+    remove() {
+        throw new Error('Never remove Ephemeral Text.');
+    }
 }
 exports.EphemeralText = EphemeralText;
 //# sourceMappingURL=ephemeralText.js.map
@@ -738,13 +789,12 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Foot = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 class Foot {
-    constructor(footObject3D, wall, assetLibrary) {
+    constructor(footObject3D, wallHandle, assetLibrary) {
         this.footObject3D = footObject3D;
-        this.wall = wall;
+        this.wallHandle = wallHandle;
         this.assetLibrary = assetLibrary;
         this.color = null;
         this.worldPosition = new AFRAME.THREE.Vector3();
-        this.isDown = true;
         this.initialPosition = new AFRAME.THREE.Vector3();
         this.initialPosition.copy(footObject3D.position);
     }
@@ -752,22 +802,14 @@ class Foot {
     removeSupply(n) { }
     getColor() { return this.color; }
     tick(timeMs, timeDeltaMs) {
-        if (this.footObject3D.position.y < 0.004) {
-            if (!this.isDown) {
-                this.isDown = true;
-                this.footObject3D.getWorldPosition(this.worldPosition);
-                const wallColor = this.wall.getColor(this.worldPosition);
-                if (wallColor === null && this.color !== null) {
-                    this.wall.paint(this.worldPosition, this.wall.kMetersPerBlock * 1.4, this);
-                }
-                else if (wallColor !== null && this.color != wallColor) {
-                    this.color = wallColor;
-                    // this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
-                }
-            }
+        this.footObject3D.getWorldPosition(this.worldPosition);
+        const wallColor = this.wallHandle.wall.getColor(this.worldPosition);
+        if (wallColor === null && this.color !== null) {
+            this.wallHandle.wall.paint(this.worldPosition, this.wallHandle.wall.kMetersPerBlock * 1.4, this);
         }
-        else {
-            this.isDown = false;
+        else if (wallColor !== null && this.color != wallColor) {
+            this.color = wallColor;
+            // this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
         }
     }
 }
@@ -819,14 +861,17 @@ const score_1 = __webpack_require__(537);
 const wall_1 = __webpack_require__(649);
 const assetLibrary_1 = __webpack_require__(673);
 const critterSource_1 = __webpack_require__(107);
-const levelSpec_1 = __webpack_require__(811);
 const sfx_1 = __webpack_require__(932);
+const levelSource_1 = __webpack_require__(421);
 var brush = null;
-var wall = null;
+var levelSource = new levelSource_1.LevelSource();
+var wallHandle = new wall_1.WallHandle();
 var critters = null;
 var eText = null;
 var score;
 var tickers = [];
+var assetLibrary = null;
+var sfx = null;
 var totalElapsed = 0;
 var tickNumber = 0;
 var previousTicks = new Float32Array(60);
@@ -883,17 +928,16 @@ AFRAME.registerComponent("go", {
         return __awaiter(this, void 0, void 0, function* () {
             debug_1.Debug.init();
             const scene = document.querySelector('a-scene');
-            const assetLibrary = new assetLibrary_1.AssetLibrary(document.querySelector('a-assets'));
+            assetLibrary = new assetLibrary_1.AssetLibrary(document.querySelector('a-assets'));
             makeRoom(scene, assetLibrary);
             eText = new ephemeralText_1.EphemeralText(scene);
             eText.addText("Let's go!", 0, 1.5, -0.6);
             score = new score_1.Score(document.querySelector('#score'));
             tickers.push(eText);
-            const sfx = yield sfx_1.SFX.make();
-            wall = new wall_1.Wall(new levelSpec_1.SmallLevel(), eText, score, assetLibrary, sfx);
-            tickers.push(wall);
-            critters = new critterSource_1.CritterSource(wall, assetLibrary, score, eText);
-            brush = new brush_1.Brush(document.querySelector('#player'), '#f80', document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall, critters);
+            sfx = yield sfx_1.SFX.make();
+            wallHandle.wall = new wall_1.Wall(levelSource.nextLevel(), eText, score, assetLibrary, sfx);
+            critters = new critterSource_1.CritterSource(wallHandle, assetLibrary, score, eText);
+            brush = new brush_1.Brush(document.querySelector('#player'), '#f80', document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wallHandle, critters);
             makeCanEntity(scene, assetLibrary, '#f80', '-0.5 0 -0.2');
             makeCanEntity(scene, assetLibrary, '#0f0', '0.5 0 -0.2');
             const body = document.querySelector('body');
@@ -903,16 +947,16 @@ AFRAME.registerComponent("go", {
                 let dz = 0;
                 switch (ev.code) {
                     case "KeyI":
-                        dy = 0.03;
+                        dy = 0.02;
                         break;
                     case "KeyK":
-                        dy = -0.03;
+                        dy = -0.02;
                         break;
                     case "KeyJ":
-                        dx = -0.03;
+                        dx = -0.02;
                         break;
                     case "KeyL":
-                        dx = 0.03;
+                        dx = 0.02;
                         break;
                     case "KeyU":
                         dz = -0.05;
@@ -940,25 +984,40 @@ AFRAME.registerComponent("go", {
             if (brush != null) {
                 brush.tick(timeMs, timeDeltaMs);
             }
-            for (const t of tickers) {
+            for (let i = 0; i < tickers.length;) {
+                const t = tickers[i];
                 t.tick(timeMs, timeDeltaMs);
+                if (t.isDone()) {
+                    t.remove();
+                    tickers.splice(i, 1);
+                }
+                else {
+                    ++i;
+                }
+            }
+            if (wallHandle.wall != null) {
+                wallHandle.wall.tick(timeMs, timeDeltaMs);
+                if (wallHandle.wall.isDone()) {
+                    wallHandle.wall.remove();
+                    wallHandle.wall = new wall_1.Wall(levelSource.nextLevel(), eText, score, assetLibrary, sfx);
+                }
             }
         }
         catch (e) {
-            debug_1.Debug.set(`Tick error: ${e}`);
+            debug_1.Debug.set('error', `Tick error: ${e}`);
             const url = new URL(document.URL);
             if (url.searchParams.get('throw')) {
                 throw e;
             }
         }
-        if (timeMs >= 10000) {
+        if (timeMs >= 1000) {
             totalElapsed -= previousTicks[tickNumber];
             totalElapsed += timeDeltaMs;
             previousTicks[tickNumber] = timeDeltaMs;
             tickNumber = (tickNumber + 1) % previousTicks.length;
             const fps = previousTicks.length * 1000 / totalElapsed;
             if (tickNumber % 15 === 0) {
-                debug_1.Debug.set(`${fps.toFixed(1)} fps`);
+                debug_1.Debug.set('fps', `${fps.toFixed(1)}`);
             }
         }
     }
@@ -991,13 +1050,46 @@ body.innerHTML = `
 
 /***/ }),
 
+/***/ 421:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.LevelSource = void 0;
+const levelSpec_1 = __webpack_require__(811);
+class LevelSource {
+    constructor() {
+        this.currentLevel = 0;
+    }
+    getLevelSpec(levelNumber) {
+        switch (levelNumber % 6) {
+            case 0: return new levelSpec_1.SmallLevel();
+            case 1: return new levelSpec_1.LargeLevel();
+            case 2: return new levelSpec_1.PatternLevel(12, [[1, 2]]);
+            case 3: return new levelSpec_1.PatternLevel(12, [[1], [2]]);
+            case 4: return new levelSpec_1.PatternLevel(15, [[1, 1, 1], [1, 2, 1], [1, 1, 1]]);
+            case 5: return new levelSpec_1.PatternLevel(15, [[1, 2, 1, 2, 1]]);
+        }
+    }
+    nextLevel() {
+        const result = this.getLevelSpec(this.currentLevel);
+        this.currentLevel++;
+        return result;
+    }
+}
+exports.LevelSource = LevelSource;
+//# sourceMappingURL=levelSource.js.map
+
+/***/ }),
+
 /***/ 811:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.SmallLevel = exports.LargeLevel = void 0;
+exports.PatternLevel = exports.SmallLevel = exports.LargeLevel = void 0;
 class AbstractLevel {
     constructor(colors) {
         this.colorMapInternal = new Map();
@@ -1021,8 +1113,8 @@ class AbstractLevel {
     }
 }
 class LargeLevel extends AbstractLevel {
-    width() { return 30; }
-    height() { return 30; }
+    width() { return 20; }
+    height() { return 20; }
     paintColorNumber(i, j) { return 1; }
     constructor() {
         super(['#444', '#f80']);
@@ -1038,6 +1130,21 @@ class SmallLevel extends AbstractLevel {
     }
 }
 exports.SmallLevel = SmallLevel;
+class PatternLevel extends AbstractLevel {
+    constructor(size, pattern) {
+        super(['#444', '#f80', '#0f0']);
+        this.size = size;
+        this.pattern = pattern;
+    }
+    width() { return this.size; }
+    height() { return this.size; }
+    paintColorNumber(i, j) {
+        const pi = Math.floor(i / this.size * this.pattern[0].length);
+        const pj = Math.floor(j / this.size * this.pattern.length);
+        return this.pattern[pj][pi];
+    }
+}
+exports.PatternLevel = PatternLevel;
 //# sourceMappingURL=levelSpec.js.map
 
 /***/ }),
@@ -1540,19 +1647,35 @@ SFX.singleton = null;
 
 "use strict";
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Wall = void 0;
-const animatedObject_1 = __webpack_require__(143);
+exports.Wall = exports.WallHandle = void 0;
+const AFRAME = __importStar(__webpack_require__(449));
 const debug_1 = __webpack_require__(756);
+class WallHandle {
+    constructor() {
+        this.wall = null;
+    }
+}
+exports.WallHandle = WallHandle;
 class Wall {
     constructor(level, eText, score, assetLibrary, sfx) {
         this.level = level;
@@ -1565,14 +1688,14 @@ class Wall {
         this.kMetersPerBlock = 0.05;
         this.kPixelsPerBlock = 32;
         this.colorMap = new Map();
-        this.wallObject = null;
         this.wallPosition = null;
         this.tickers = [];
         this.remaining = null;
+        this.done = false;
+        this.entity = null;
         this.tmpPosition = new AFRAME.THREE.Vector3();
         const scene = document.querySelector('a-scene');
-        const wall = document.createElement('a-entity');
-        this.wallObject = wall.object3D;
+        this.entity = document.createElement('a-entity');
         this.canvas = document.createElement('canvas');
         this.canvas.width = 1024;
         this.canvas.height = 1024;
@@ -1587,10 +1710,6 @@ class Wall {
         });
         const wallGeometry = new AFRAME.THREE.PlaneGeometry(1024 / this.kPixelsPerBlock * this.kMetersPerBlock, 1024 / this.kPixelsPerBlock * this.kMetersPerBlock);
         this.wallPosition = new AFRAME.THREE.Vector3(0, this.wallY, this.wallZ);
-        const url = new URL(document.URL);
-        if (url.searchParams.get('doors')) {
-            this.loadDoors();
-        }
         {
             const centerPx = this.kPixelsPerBlock * level.width() / 2;
             const fromLeftM = this.kMetersPerBlock * centerPx / this.kPixelsPerBlock;
@@ -1599,22 +1718,15 @@ class Wall {
             wallGeometry.translate(this.wallPosition.x + deltaM, this.wallPosition.y - deltaM, this.wallPosition.z);
         }
         const wallMesh = new AFRAME.THREE.Mesh(wallGeometry, wallMaterial);
-        wall.object3D = wallMesh;
-        scene.appendChild(wall);
+        this.entity.object3D = wallMesh;
+        scene.appendChild(this.entity);
         this.blocks = new Uint8ClampedArray(level.width() * level.height());
         this.colorMap = level.getColorMap();
         this.updateCanvas();
     }
-    loadDoors() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const scene = document.querySelector('a-scene');
-            const doorContainer = document.createElement('a-entity');
-            doorContainer.setAttribute('position', `0 ${this.wallY} ${this.wallZ}`);
-            scene.appendChild(doorContainer);
-            const doors = yield animatedObject_1.AnimatedObject.make('obj/oven doors.gltf', this.assetLibrary, doorContainer);
-            doors.fadeTo(5, 0.25);
-            this.tickers.push(doors);
-        });
+    isDone() { return this.done; }
+    remove() {
+        this.entity.remove();
     }
     updateCanvas() {
         const ctx = this.canvas.getContext('2d');
@@ -1622,10 +1734,12 @@ class Wall {
         const boxWidth = this.kPixelsPerBlock;
         for (const [colorIndex, color] of this.colorMap.entries()) {
             ctx.fillStyle = color;
+            let numSet = 0;
             for (let i = 0; i < this.level.width(); ++i) {
                 for (let j = 0; j < this.level.height(); ++j) {
                     if (this.blocks[i + j * this.level.width()] === colorIndex) {
                         ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1, boxWidth - 2, boxWidth - 2);
+                        ++numSet;
                     }
                 }
             }
@@ -1736,12 +1850,13 @@ class Wall {
                 }
                 this.remaining -= deltaPoints;
                 if (this.remaining === 0) {
+                    this.done = true;
                     this.sfx.complete();
                 }
             }
         }
         catch (e) {
-            debug_1.Debug.set(`error: ${e}`);
+            debug_1.Debug.set('error', `${e}`);
         }
     }
     getColor(brushPosition) {

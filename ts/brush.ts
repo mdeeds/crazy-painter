@@ -3,7 +3,7 @@ import { CritterSource } from "./critterSource";
 
 import { Debug } from "./debug";
 import { Painter } from "./painter";
-import { Wall } from "./wall";
+import { Wall, WallHandle } from "./wall";
 
 export class PaintBrush implements Painter {
   private kPaintCapacity = 120;
@@ -54,7 +54,7 @@ export class Brush {
 
   constructor(container: AFRAME.Entity, color: string,
     private leftHand, private rightHand,
-    private wall: Wall, private critters: CritterSource) {
+    private wallHandle: WallHandle, private critters: CritterSource) {
     this.leftBrush = this.makeBrush(container, color);
     this.rightBrush = this.makeBrush(container, color);
     this.leftMinusRight = new AFRAME.THREE.Vector3();
@@ -84,14 +84,12 @@ export class Brush {
     if (vec.y < 0) {
       vec.y = 0;
     }
-    if (vec.z - this.kBrushRadius < this.wall.wallZ) {
+    if (vec.z <= this.wallHandle.wall.wallZ) {
+      vec.z = this.wallHandle.wall.wallZ;
       obj.getWorldPosition(this.brushPosition);
-      if (vec.z <= this.wall.wallZ) {
-        this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
-        vec.z = this.wall.wallZ;
-        for (const c of this.critters.getCritters()) {
-          c.squash(this.brushPosition);
-        }
+      this.wallHandle.wall.paint(this.brushPosition, this.kBrushRadius, brush);
+      for (const c of this.critters.getCritters()) {
+        c.squash(this.brushPosition);
       }
     }
   }
@@ -126,12 +124,12 @@ export class Brush {
     const xRad = Math.atan2(this.leftMinusRight.y, this.leftMinusRight.z);
     const yRad = Math.atan2(this.leftMinusRight.z, this.leftMinusRight.x);
 
-    const distance = this.leftMinusRight.length();
+    const distance = this.leftMinusRight.length() * 2;
     if (distance > 0) {
       this.updatePole(this.leftMinusRight, this.leftHand.position, this.rightHand.position);
       // this.pole.object3D.rotation.set(xRad, yRad, 0);
     }
-    this.leftMinusRight.normalize().multiplyScalar(Math.max(distance, 0.4));
+    this.leftMinusRight.setLength(Math.max(distance, 0.4));
     // this.leftMinusRight.normalize().multiplyScalar(0.4);
     this.leftBrush.obj.position.copy(this.leftHand.position);
     this.leftBrush.obj.position.add(this.leftMinusRight);

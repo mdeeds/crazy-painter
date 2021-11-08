@@ -3,12 +3,12 @@ import * as AFRAME from "aframe";
 import { AssetLibrary } from "./assetLibrary";
 import { Debug } from "./debug";
 import { Painter } from "./painter";
-import { Wall } from "./wall";
+import { Wall, WallHandle } from "./wall";
 
 export class Foot implements Painter {
   private initialPosition: any;
   private color = null;
-  constructor(private footObject3D: any, private wall: Wall,
+  constructor(private footObject3D: any, private wallHandle: WallHandle,
     private assetLibrary: AssetLibrary) {
     this.initialPosition = new AFRAME.THREE.Vector3();
     this.initialPosition.copy(footObject3D.position);
@@ -19,23 +19,15 @@ export class Foot implements Painter {
   getColor() { return this.color }
 
   private worldPosition = new AFRAME.THREE.Vector3();
-  private isDown = true;
   tick(timeMs: number, timeDeltaMs: number) {
-    if (this.footObject3D.position.y < 0.004) {
-      if (!this.isDown) {
-        this.isDown = true;
-        this.footObject3D.getWorldPosition(this.worldPosition);
-        const wallColor = this.wall.getColor(this.worldPosition);
-        if (wallColor === null && this.color !== null) {
-          this.wall.paint(this.worldPosition,
-            this.wall.kMetersPerBlock * 1.4, this)
-        } else if (wallColor !== null && this.color != wallColor) {
-          this.color = wallColor;
-          // this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
-        }
-      }
-    } else {
-      this.isDown = false;
+    this.footObject3D.getWorldPosition(this.worldPosition);
+    const wallColor = this.wallHandle.wall.getColor(this.worldPosition);
+    if (wallColor === null && this.color !== null) {
+      this.wallHandle.wall.paint(this.worldPosition,
+        this.wallHandle.wall.kMetersPerBlock * 1.4, this)
+    } else if (wallColor !== null && this.color != wallColor) {
+      this.color = wallColor;
+      // this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
     }
   }
 }

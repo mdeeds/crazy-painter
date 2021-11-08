@@ -1,11 +1,17 @@
+import * as AFRAME from "aframe";
+
 import { AnimatedObject } from "./animatedObject";
 import { AssetLibrary } from "./assetLibrary";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
-import { levelSpec } from "./levelSpec";
+import { LevelSpec } from "./levelSpec";
 import { Painter } from "./painter";
 import { Score } from "./score";
 import { SFX } from "./sfx";
+
+export class WallHandle {
+  wall: Wall = null;
+}
 
 export class Wall implements Ticker {
   private canvas: HTMLCanvasElement = null;
@@ -19,17 +25,17 @@ export class Wall implements Ticker {
   private colorMap = new Map<number, string>();
   readonly kWallWidthMeters: number;
   readonly kWallHeightMeters: number;
-  private readonly wallObject = null;
   private wallPosition = null;
   private tickers: Ticker[] = [];
   private remaining: number = null;
+  private done = false;
+  private entity: AFRAME.Entity = null;
 
-  constructor(private level: levelSpec, private eText: EphemeralText,
+  constructor(private level: LevelSpec, private eText: EphemeralText,
     private score: Score, private assetLibrary: AssetLibrary,
     private sfx: SFX) {
     const scene = document.querySelector('a-scene');
-    const wall = document.createElement('a-entity');
-    this.wallObject = wall.object3D;
+    this.entity = document.createElement('a-entity');
     this.canvas = document.createElement('canvas') as unknown as HTMLCanvasElement;
     this.canvas.width = 1024;
     this.canvas.height = 1024;
@@ -49,11 +55,6 @@ export class Wall implements Ticker {
       1024 / this.kPixelsPerBlock * this.kMetersPerBlock);
     this.wallPosition = new AFRAME.THREE.Vector3(0, this.wallY, this.wallZ);
 
-    const url = new URL(document.URL);
-    if (url.searchParams.get('doors')) {
-      this.loadDoors();
-    }
-
     {
       const centerPx = this.kPixelsPerBlock * level.width() / 2;
       const fromLeftM = this.kMetersPerBlock * centerPx / this.kPixelsPerBlock;
@@ -65,23 +66,18 @@ export class Wall implements Ticker {
     }
 
     const wallMesh = new AFRAME.THREE.Mesh(wallGeometry, wallMaterial);
-    wall.object3D = wallMesh;
-    scene.appendChild(wall);
+    this.entity.object3D = wallMesh;
+    scene.appendChild(this.entity);
 
     this.blocks = new Uint8ClampedArray(level.width() * level.height());
     this.colorMap = level.getColorMap();
     this.updateCanvas();
   }
 
-  async loadDoors() {
-    const scene = document.querySelector('a-scene');
-    const doorContainer = document.createElement('a-entity');
-    doorContainer.setAttribute('position', `0 ${this.wallY} ${this.wallZ}`);
-    scene.appendChild(doorContainer);
-    const doors = await AnimatedObject.make(
-      'obj/oven doors.gltf', this.assetLibrary, doorContainer);
-    doors.fadeTo(5, 0.25);
-    this.tickers.push(doors);
+  isDone(): boolean { return this.done; }
+
+  remove() {
+    this.entity.remove();
   }
 
   public updateCanvas() {
@@ -90,11 +86,13 @@ export class Wall implements Ticker {
     const boxWidth = this.kPixelsPerBlock;
     for (const [colorIndex, color] of this.colorMap.entries()) {
       ctx.fillStyle = color;
+      let numSet = 0;
       for (let i = 0; i < this.level.width(); ++i) {
         for (let j = 0; j < this.level.height(); ++j) {
           if (this.blocks[i + j * this.level.width()] === colorIndex) {
             ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1,
               boxWidth - 2, boxWidth - 2);
+            ++numSet;
           }
         }
       }
@@ -213,11 +211,12 @@ export class Wall implements Ticker {
         }
         this.remaining -= deltaPoints;
         if (this.remaining === 0) {
+          this.done = true;
           this.sfx.complete();
         }
       }
     } catch (e) {
-      Debug.set(`error: ${e}`);
+      Debug.set('error', `${e}`);
     }
   }
 

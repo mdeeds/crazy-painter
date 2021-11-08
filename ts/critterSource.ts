@@ -7,7 +7,7 @@ import { Critter, CritterParts } from "./critter";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
 import { Score } from "./score";
-import { Wall } from "./wall";
+import { Wall, WallHandle } from "./wall";
 
 export class CritterSource {
   private timeToNextCritterMs = 1000;
@@ -17,7 +17,7 @@ export class CritterSource {
 
   private showLizards = true;
 
-  constructor(private wall: Wall, private assetLibrary: AssetLibrary,
+  constructor(private wallHandle: WallHandle, private assetLibrary: AssetLibrary,
     private score: Score, private eText: EphemeralText) {
     const url = new URL(document.URL);
     const numLizards = url.searchParams.get('lizards');
@@ -30,7 +30,7 @@ export class CritterSource {
     return this.critters;
   }
 
-  private async makeTurtle(container: AFRAME.Entity, spawnTime: number): Promise<Critter> {
+  private async makeLizard(container: AFRAME.Entity, spawnTime: number): Promise<Critter> {
     const lizard = await AnimatedObject.make(
       'obj/lizard.gltf', this.assetLibrary, container);
     this.lizards.push(lizard);
@@ -47,7 +47,7 @@ export class CritterSource {
       }
     });
     const critter = new Critter(
-      container, parts, this.wall,
+      container, parts, this.wallHandle,
       spawnTime, this.score, this.eText, this.assetLibrary);
     return critter;
   }
@@ -58,15 +58,13 @@ export class CritterSource {
     }
     this.timeToNextCritterMs -= timeDeltaMs;
     if (this.timeToNextCritterMs <= 0) {
-      this.timeToNextCritterMs = 15000;
+      this.timeToNextCritterMs = 3000;
       const turtleEnt = document.createElement('a-entity');
       turtleEnt.setAttribute('position',
-        `0` +
-        ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
-        ` ${this.wall.wallZ}`);
+        `0 ${this.wallHandle.wall.wallY} ${this.wallHandle.wall.wallZ}`);
       turtleEnt.setAttribute('rotation', '90 0 0');
       document.querySelector('a-scene').appendChild(turtleEnt);
-      const turtle = await this.makeTurtle(
+      const turtle = await this.makeLizard(
         turtleEnt, timeMs);
       this.critters.push(turtle);
     }
