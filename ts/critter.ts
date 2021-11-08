@@ -5,7 +5,7 @@ import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
 import { Foot } from "./foot";
 import { Score } from "./score";
-import { Wall } from "./wall";
+import { Wall, WallHandle } from "./wall";
 
 export class CritterParts {
   readonly feet: any[] = [];  // THREE.Object3D
@@ -20,10 +20,10 @@ export class Critter implements Ticker {
   private timeToNextSprintMs = 0;
   constructor(
     private container: AFRAME.Entity, private parts: CritterParts,
-    private wall: Wall, private spawnTimeMs: number, private score: Score,
+    private wallHandle: WallHandle, private spawnTimeMs: number, private score: Score,
     private eText: EphemeralText, private assetLibrary: AssetLibrary) {
     for (const [i, f] of parts.feet.entries()) {
-      this.feet.push(new Foot(f, this.wall, this.assetLibrary));
+      this.feet.push(new Foot(f, this.wallHandle, this.assetLibrary));
     }
     this.targetPosition.set(Math.random() * 2 - 1, 0, 1);
     this.parts.body.entity.object3D.position.copy(this.targetPosition);

@@ -261,10 +261,10 @@ class PaintBrush {
 }
 exports.PaintBrush = PaintBrush;
 class Brush {
-    constructor(container, color, leftHand, rightHand, wall, critters) {
+    constructor(container, color, leftHand, rightHand, wallHandle, critters) {
         this.leftHand = leftHand;
         this.rightHand = rightHand;
-        this.wall = wall;
+        this.wallHandle = wallHandle;
         this.critters = critters;
         this.kBrushRadius = 0.1;
         this.brushPosition = new AFRAME.THREE.Vector3();
@@ -296,10 +296,10 @@ class Brush {
         if (vec.y < 0) {
             vec.y = 0;
         }
-        if (vec.z <= this.wall.wallZ) {
-            vec.z = this.wall.wallZ;
+        if (vec.z <= this.wallHandle.wall.wallZ) {
+            vec.z = this.wallHandle.wall.wallZ;
             obj.getWorldPosition(this.brushPosition);
-            this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
+            this.wallHandle.wall.paint(this.brushPosition, this.kBrushRadius, brush);
             for (const c of this.critters.getCritters()) {
                 c.squash(this.brushPosition);
             }
@@ -326,12 +326,12 @@ class Brush {
         this.leftMinusRight.sub(this.rightHand.position);
         const xRad = Math.atan2(this.leftMinusRight.y, this.leftMinusRight.z);
         const yRad = Math.atan2(this.leftMinusRight.z, this.leftMinusRight.x);
-        const distance = this.leftMinusRight.length();
+        const distance = this.leftMinusRight.length() * 2;
         if (distance > 0) {
             this.updatePole(this.leftMinusRight, this.leftHand.position, this.rightHand.position);
             // this.pole.object3D.rotation.set(xRad, yRad, 0);
         }
-        this.leftMinusRight.normalize().multiplyScalar(Math.max(distance, 0.4));
+        this.leftMinusRight.setLength(Math.max(distance, 0.4));
         // this.leftMinusRight.normalize().multiplyScalar(0.4);
         this.leftBrush.obj.position.copy(this.leftHand.position);
         this.leftBrush.obj.position.add(this.leftMinusRight);
@@ -484,10 +484,10 @@ class CritterParts {
 }
 exports.CritterParts = CritterParts;
 class Critter {
-    constructor(container, parts, wall, spawnTimeMs, score, eText, assetLibrary) {
+    constructor(container, parts, wallHandle, spawnTimeMs, score, eText, assetLibrary) {
         this.container = container;
         this.parts = parts;
-        this.wall = wall;
+        this.wallHandle = wallHandle;
         this.spawnTimeMs = spawnTimeMs;
         this.score = score;
         this.eText = eText;
@@ -500,7 +500,7 @@ class Critter {
         this.worldPosition = new AFRAME.THREE.Vector3();
         this.direction = new AFRAME.THREE.Vector3();
         for (const [i, f] of parts.feet.entries()) {
-            this.feet.push(new foot_1.Foot(f, this.wall, this.assetLibrary));
+            this.feet.push(new foot_1.Foot(f, this.wallHandle, this.assetLibrary));
         }
         this.targetPosition.set(Math.random() * 2 - 1, 0, 1);
         this.parts.body.entity.object3D.position.copy(this.targetPosition);
@@ -521,8 +521,6 @@ class Critter {
     squash(worldPosition) {
         this.parts.body.entity.object3D.getWorldPosition(this.worldPosition);
         if (worldPosition.distanceTo(this.worldPosition) < 0.2) {
-            this.score.add(500);
-            this.eText.addText("+500", this.worldPosition.x, this.worldPosition.y, this.worldPosition.z);
             this.done = true;
         }
     }
@@ -547,7 +545,7 @@ class Critter {
             }
             this.direction.setLength(stepSize);
             currentPos.add(this.direction);
-            if (currentPos.z < -2.0) {
+            if (currentPos.z < -3.0) {
                 this.done = true;
             }
             const animationMps = (0.35 - 0.15) / (30 / 24);
@@ -582,8 +580,8 @@ exports.CritterSource = void 0;
 const animatedObject_1 = __webpack_require__(143);
 const critter_1 = __webpack_require__(918);
 class CritterSource {
-    constructor(wall, assetLibrary, score, eText) {
-        this.wall = wall;
+    constructor(wallHandle, assetLibrary, score, eText) {
+        this.wallHandle = wallHandle;
         this.assetLibrary = assetLibrary;
         this.score = score;
         this.eText = eText;
@@ -614,7 +612,7 @@ class CritterSource {
                     parts.feet[i] = node;
                 }
             });
-            const critter = new critter_1.Critter(container, parts, this.wall, spawnTime, this.score, this.eText, this.assetLibrary);
+            const critter = new critter_1.Critter(container, parts, this.wallHandle, spawnTime, this.score, this.eText, this.assetLibrary);
             return critter;
         });
     }
@@ -627,7 +625,7 @@ class CritterSource {
             if (this.timeToNextCritterMs <= 0) {
                 this.timeToNextCritterMs = 3000;
                 const turtleEnt = document.createElement('a-entity');
-                turtleEnt.setAttribute('position', `0 ${this.wall.wallY} ${this.wall.wallZ}`);
+                turtleEnt.setAttribute('position', `0 ${this.wallHandle.wall.wallY} ${this.wallHandle.wall.wallZ}`);
                 turtleEnt.setAttribute('rotation', '90 0 0');
                 document.querySelector('a-scene').appendChild(turtleEnt);
                 const turtle = yield this.makeLizard(turtleEnt, timeMs);
@@ -785,13 +783,12 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Foot = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 class Foot {
-    constructor(footObject3D, wall, assetLibrary) {
+    constructor(footObject3D, wallHandle, assetLibrary) {
         this.footObject3D = footObject3D;
-        this.wall = wall;
+        this.wallHandle = wallHandle;
         this.assetLibrary = assetLibrary;
         this.color = null;
         this.worldPosition = new AFRAME.THREE.Vector3();
-        this.isDown = true;
         this.initialPosition = new AFRAME.THREE.Vector3();
         this.initialPosition.copy(footObject3D.position);
     }
@@ -799,22 +796,14 @@ class Foot {
     removeSupply(n) { }
     getColor() { return this.color; }
     tick(timeMs, timeDeltaMs) {
-        if (this.footObject3D.position.y < 0.004) {
-            if (!this.isDown) {
-                this.isDown = true;
-                this.footObject3D.getWorldPosition(this.worldPosition);
-                const wallColor = this.wall.getColor(this.worldPosition);
-                if (wallColor === null && this.color !== null) {
-                    this.wall.paint(this.worldPosition, this.wall.kMetersPerBlock * 1.4, this);
-                }
-                else if (wallColor !== null && this.color != wallColor) {
-                    this.color = wallColor;
-                    // this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
-                }
-            }
+        this.footObject3D.getWorldPosition(this.worldPosition);
+        const wallColor = this.wallHandle.wall.getColor(this.worldPosition);
+        if (wallColor === null && this.color !== null) {
+            this.wallHandle.wall.paint(this.worldPosition, this.wallHandle.wall.kMetersPerBlock * 1.4, this);
         }
-        else {
-            this.isDown = false;
+        else if (wallColor !== null && this.color != wallColor) {
+            this.color = wallColor;
+            // this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
         }
     }
 }
@@ -866,14 +855,17 @@ const score_1 = __webpack_require__(537);
 const wall_1 = __webpack_require__(649);
 const assetLibrary_1 = __webpack_require__(673);
 const critterSource_1 = __webpack_require__(107);
-const levelSpec_1 = __webpack_require__(811);
 const sfx_1 = __webpack_require__(932);
+const levelSource_1 = __webpack_require__(421);
 var brush = null;
-var wall = null;
+var levelSource = new levelSource_1.LevelSource();
+var wallHandle = new wall_1.WallHandle();
 var critters = null;
 var eText = null;
 var score;
 var tickers = [];
+var assetLibrary = null;
+var sfx = null;
 var totalElapsed = 0;
 var tickNumber = 0;
 var previousTicks = new Float32Array(60);
@@ -930,17 +922,16 @@ AFRAME.registerComponent("go", {
         return __awaiter(this, void 0, void 0, function* () {
             debug_1.Debug.init();
             const scene = document.querySelector('a-scene');
-            const assetLibrary = new assetLibrary_1.AssetLibrary(document.querySelector('a-assets'));
+            assetLibrary = new assetLibrary_1.AssetLibrary(document.querySelector('a-assets'));
             makeRoom(scene, assetLibrary);
             eText = new ephemeralText_1.EphemeralText(scene);
             eText.addText("Let's go!", 0, 1.5, -0.6);
             score = new score_1.Score(document.querySelector('#score'));
             tickers.push(eText);
-            const sfx = yield sfx_1.SFX.make();
-            wall = new wall_1.Wall(new levelSpec_1.SmallLevel(), eText, score, assetLibrary, sfx);
-            tickers.push(wall);
-            critters = new critterSource_1.CritterSource(wall, assetLibrary, score, eText);
-            brush = new brush_1.Brush(document.querySelector('#player'), '#f80', document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wall, critters);
+            sfx = yield sfx_1.SFX.make();
+            wallHandle.wall = new wall_1.Wall(levelSource.nextLevel(), eText, score, assetLibrary, sfx);
+            critters = new critterSource_1.CritterSource(wallHandle, assetLibrary, score, eText);
+            brush = new brush_1.Brush(document.querySelector('#player'), '#f80', document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wallHandle, critters);
             makeCanEntity(scene, assetLibrary, '#f80', '-0.5 0 -0.2');
             makeCanEntity(scene, assetLibrary, '#0f0', '0.5 0 -0.2');
             const body = document.querySelector('body');
@@ -950,16 +941,16 @@ AFRAME.registerComponent("go", {
                 let dz = 0;
                 switch (ev.code) {
                     case "KeyI":
-                        dy = 0.03;
+                        dy = 0.02;
                         break;
                     case "KeyK":
-                        dy = -0.03;
+                        dy = -0.02;
                         break;
                     case "KeyJ":
-                        dx = -0.03;
+                        dx = -0.02;
                         break;
                     case "KeyL":
-                        dx = 0.03;
+                        dx = 0.02;
                         break;
                     case "KeyU":
                         dz = -0.05;
@@ -996,6 +987,13 @@ AFRAME.registerComponent("go", {
                 }
                 else {
                     ++i;
+                }
+            }
+            if (wallHandle.wall != null) {
+                wallHandle.wall.tick(timeMs, timeDeltaMs);
+                if (wallHandle.wall.isDone()) {
+                    wallHandle.wall.remove();
+                    wallHandle.wall = new wall_1.Wall(levelSource.nextLevel(), eText, score, assetLibrary, sfx);
                 }
             }
         }
@@ -1043,6 +1041,35 @@ body.innerHTML = `
 </a-scene>
 `;
 //# sourceMappingURL=index.js.map
+
+/***/ }),
+
+/***/ 421:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.LevelSource = void 0;
+const levelSpec_1 = __webpack_require__(811);
+class LevelSource {
+    constructor() {
+        this.currentLevel = 0;
+    }
+    getLevelSpec(levelNumber) {
+        switch (levelNumber % 2) {
+            case 0: return new levelSpec_1.SmallLevel();
+            case 1: return new levelSpec_1.LargeLevel();
+        }
+    }
+    nextLevel() {
+        const result = this.getLevelSpec(this.currentLevel);
+        this.currentLevel++;
+        return result;
+    }
+}
+exports.LevelSource = LevelSource;
+//# sourceMappingURL=levelSource.js.map
 
 /***/ }),
 
@@ -1615,9 +1642,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Wall = void 0;
+exports.Wall = exports.WallHandle = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
 const debug_1 = __webpack_require__(756);
+class WallHandle {
+    constructor() {
+        this.wall = null;
+    }
+}
+exports.WallHandle = WallHandle;
 class Wall {
     constructor(level, eText, score, assetLibrary, sfx) {
         this.level = level;

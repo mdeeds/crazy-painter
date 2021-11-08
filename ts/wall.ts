@@ -4,10 +4,14 @@ import { AnimatedObject } from "./animatedObject";
 import { AssetLibrary } from "./assetLibrary";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
-import { levelSpec } from "./levelSpec";
+import { LevelSpec } from "./levelSpec";
 import { Painter } from "./painter";
 import { Score } from "./score";
 import { SFX } from "./sfx";
+
+export class WallHandle {
+  wall: Wall = null;
+}
 
 export class Wall implements Ticker {
   private canvas: HTMLCanvasElement = null;
@@ -27,7 +31,7 @@ export class Wall implements Ticker {
   private done = false;
   private entity: AFRAME.Entity = null;
 
-  constructor(private level: levelSpec, private eText: EphemeralText,
+  constructor(private level: LevelSpec, private eText: EphemeralText,
     private score: Score, private assetLibrary: AssetLibrary,
     private sfx: SFX) {
     const scene = document.querySelector('a-scene');

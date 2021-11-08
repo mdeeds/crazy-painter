@@ -1,4 +1,4 @@
-export interface levelSpec {
+export interface LevelSpec {
   width(): number;
   height(): number;
   // Returns the color for cell i, j 
@@ -31,7 +31,7 @@ class AbstractLevel {
   }
 }
 
-export class LargeLevel extends AbstractLevel implements levelSpec {
+export class LargeLevel extends AbstractLevel implements LevelSpec {
   width() { return 30; }
   height() { return 30; }
   paintColorNumber(i: number, j: number) { return 1; }
@@ -40,7 +40,7 @@ export class LargeLevel extends AbstractLevel implements levelSpec {
   }
 }
 
-export class SmallLevel extends AbstractLevel implements levelSpec {
+export class SmallLevel extends AbstractLevel implements LevelSpec {
   width() { return 10; }
   height() { return 10; }
   paintColorNumber(i: number, j: number) { return 1; }
