@@ -13,6 +13,18 @@ export class WallHandle {
   wall: Wall = null;
 }
 
+class PaintState {
+  brushRadius: number;
+  hasChanges = false;
+  deltaPoints = 0;
+  paintUsed = 0;
+  sum_x = 0;
+  sum_y = 0;
+  constructor(radius: number, kMetersPerBlock: number, public newColor: number) {
+    this.brushRadius = radius / kMetersPerBlock;
+  }
+}
+
 export class Wall implements Ticker {
   private canvas: HTMLCanvasElement = null;
   private wallTex = null;
@@ -143,6 +155,100 @@ export class Wall implements Ticker {
     return [ci, cj];
   }
 
+  // ci, cj, and brushRadius describe a circle.  ci and cj may be
+  // floating point numbers.  Calls cb for all integer i,j inside that circle.
+  private doCircle(ci: number, cj: number, brushRadius: number,
+    cb: (i: number, j: number) => void) {
+    for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
+      if (i < 0 || i >= this.level.width()) {
+        continue;
+      }
+      for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
+        if (j < 0 || j >= this.level.height()) {
+          continue;
+        }
+        const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
+        if (r2 < brushRadius * brushRadius) {
+          cb(i, j);
+        }
+      }
+    }
+  }
+
+  private doLine(i1: number, j1: number, i2: number, j2: number,
+    cb: (i: number, j: number) => void) {
+    let di: number, dj: number;
+    if (Math.abs(i2 - i1) > Math.abs(j2 - j1)) {
+      di = Math.sign(i2 - i1);
+      dj = (j2 - j1) / Math.abs(i2 - i1);
+    } else {
+      dj = Math.sign(j2 - j1);
+      di = (i2 - i1) / Math.abs(j2 - j1);
+    }
+    let i = i1;
+    let j = j1;
+    let steps = Math.max(Math.abs(i2 - i1), Math.abs(j2 - j1));
+    while (steps > 0) {
+      cb(Math.round(i), Math.round(j));
+      i += di;
+      j += dj;
+      --steps;
+    }
+  }
+
+  private handlePaintFactory(paintState: PaintState, brush: Painter) {
+    return (i: number, j: number) => {
+      if (paintState.deltaPoints >= brush.getSupply()) {
+        return;
+      }
+      const oldColor = this.blocks[i + j * this.level.width()];
+      const desiredColor = this.level.paintColorNumber(i, j);
+      if (oldColor !== paintState.newColor) {
+        if (Math.random() * 20 > brush.getSupply()) {
+          return;
+        }
+        this.blocks[i + j * this.level.width()] = paintState.newColor;
+        if (paintState.newColor === desiredColor) {
+          ++paintState.deltaPoints;
+        } else if (oldColor === desiredColor) {
+          --paintState.deltaPoints;
+        }
+        // TODO: award points if the color is correct.
+        // TODO: deduct points if color is incorrect.
+        const wx = this.worldXForI(i);
+        const wy = this.worldYForJ(j);
+        paintState.sum_x += wx;
+        paintState.sum_y += wy;
+        ++paintState.paintUsed;
+        paintState.hasChanges = true;
+      }
+    }
+  }
+
+  private finishBrushing(paintState: PaintState, brush: Painter) {
+    if (paintState.hasChanges) {
+      this.updateCanvas();
+      this.score.add(paintState.deltaPoints);
+      brush.removeSupply(paintState.deltaPoints);
+      if (paintState.deltaPoints > 0) {
+        this.sfx.point();
+        this.eText.addText(`+${paintState.deltaPoints}`,
+          paintState.sum_x / paintState.paintUsed, paintState.sum_y / paintState.paintUsed,
+          this.wallZ + Math.random() * 0.05);
+      } else if (paintState.deltaPoints < 0) {
+        this.eText.addText(`${paintState.deltaPoints}`,
+          paintState.sum_x / paintState.paintUsed, paintState.sum_y / paintState.paintUsed,
+          this.wallZ + Math.random() * 0.05, 'down');
+        this.sfx.minusPoint();
+      }
+      this.remaining -= paintState.deltaPoints;
+      if (this.remaining === 0) {
+        this.done = true;
+        this.sfx.complete();
+      }
+    }
+  }
+
   private tmpPosition = new AFRAME.THREE.Vector3();
   public paint(brushPosition: any, radius: number, brush: Painter) {
     try {
@@ -150,73 +256,16 @@ export class Wall implements Ticker {
       if (ci === null) {
         return;
       }
+      const paintState = new PaintState(radius, this.kMetersPerBlock,
+        this.level.getIndexForColor(brush.getColor()));
       const brushRadius = radius / this.kMetersPerBlock;
-      let hasChanges = false;
-      let deltaPoints = 0;
-      let paintUsed = 0;
-      let sum_x = 0;
-      let sum_y = 0;
-      const newColor = this.level.getIndexForColor(brush.getColor());
-      for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
-        if (i < 0 || i >= this.level.width()) {
-          continue;
-        }
-        for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
-          if (j < 0 || j >= this.level.height()) {
-            continue;
-          }
-          if (deltaPoints >= brush.getSupply()) {
-            continue;
-          }
-          const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
-          if (r2 < brushRadius * brushRadius) {
-            const oldColor = this.blocks[i + j * this.level.width()];
-            const desiredColor = this.level.paintColorNumber(i, j);
-            if (oldColor !== newColor) {
-              if (Math.random() * 20 > brush.getSupply()) {
-                continue;
-              }
-              this.blocks[i + j * this.level.width()] = newColor;
-              if (newColor === desiredColor) {
-                ++deltaPoints;
-              } else if (oldColor === desiredColor) {
-                --deltaPoints;
-              }
-              // TODO: award points if the color is correct.
-              // TODO: deduct points if color is incorrect.
-              const wx = this.worldXForI(i);
-              const wy = this.worldYForJ(j);
-              sum_x += wx;
-              sum_y += wy;
-              ++paintUsed;
-              hasChanges = true;
-            }
-          }
-        }
-      }
-      if (hasChanges) {
-        this.updateCanvas();
-        this.score.add(deltaPoints);
-        brush.removeSupply(deltaPoints);
-        if (deltaPoints > 0) {
-          this.sfx.point();
-          this.eText.addText(`+${deltaPoints}`,
-            sum_x / paintUsed, sum_y / paintUsed,
-            this.wallZ + Math.random() * 0.05);
-        } else if (deltaPoints < 0) {
-          this.eText.addText(`${deltaPoints}`,
-            sum_x / paintUsed, sum_y / paintUsed,
-            this.wallZ + Math.random() * 0.05, 'down');
-          this.sfx.minusPoint();
-        }
-        this.remaining -= deltaPoints;
-        if (this.remaining === 0) {
-          this.done = true;
-          this.sfx.complete();
-        }
-      }
+      this.doCircle(ci, cj, brushRadius, this.handlePaintFactory(paintState, brush));
+      this.finishBrushing(paintState, brush);
     } catch (e) {
-      Debug.set('error', `${e}`);
+      Debug.set('paint error', `${e}`);
+      if (new URL(document.URL).searchParams.get('throw')) {
+        throw e;
+      }
     }
   }
 

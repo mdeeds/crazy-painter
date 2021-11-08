@@ -2,11 +2,10 @@ import * as Tone from "tone";
 import { Positron, PositronConfig } from "./positron";
 
 export class SFX {
-  private pointTones = ['E4', 'A4', 'C5', 'G5']
   private pointSounds: Positron[] = [];
   private synth: Tone.AMSynth;
   private constructor(pointConfig: PositronConfig) {
-    for (const note of this.pointTones) {
+    for (let i = 0; i < 6; ++i) {
       const p = new Positron(pointConfig);
       p.setVolume(0.05);
       this.pointSounds.push(p);
@@ -41,10 +40,12 @@ export class SFX {
     });
   }
 
+  private pointTones = ['C5', 'C5', 'A5', 'G5', 'E5', 'G5', 'C6', 'A5', 'C5', 'C5', 'A5', 'G5', 'C5', 'E5'];
+  private pointIndex = 0;
   point() {
-    const i = Math.trunc(Math.random() * this.pointTones.length);
-    this.pointSounds[i].triggerAttackRelease(
-      this.pointTones[i], '8n', null);
+    this.pointSounds[this.pointIndex % this.pointSounds.length].triggerAttackRelease(
+      this.pointTones[this.pointIndex], '8n', null);
+    this.pointIndex = (this.pointIndex + 1) % this.pointTones.length;
   }
 
   minusPoint() {
