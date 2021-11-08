@@ -529,7 +529,6 @@ class Critter {
         if (this.timeToNextSprintMs > 0) {
             this.timeToNextSprintMs -= timeDeltaMs;
             if (this.timeToNextSprintMs <= 0) {
-                this.setNewTarget();
                 this.speedMps = 2;
             }
         }
@@ -542,6 +541,7 @@ class Critter {
             if (stepSize >= remainingDistance) {
                 stepSize = remainingDistance;
                 this.speedMps = 0;
+                this.setNewTarget();
                 this.timeToNextSprintMs = Math.random() * 500 + 500;
             }
             this.direction.setLength(stepSize);
@@ -1066,13 +1066,21 @@ class LevelSource {
         this.currentLevel = 0;
     }
     getLevelSpec(levelNumber) {
-        switch (levelNumber % 6) {
+        switch (levelNumber % 8) {
             case 0: return new levelSpec_1.SmallLevel();
             case 1: return new levelSpec_1.LargeLevel();
             case 2: return new levelSpec_1.PatternLevel(12, [[1, 2]]);
             case 3: return new levelSpec_1.PatternLevel(12, [[1], [2]]);
             case 4: return new levelSpec_1.PatternLevel(15, [[1, 1, 1], [1, 2, 1], [1, 1, 1]]);
             case 5: return new levelSpec_1.PatternLevel(15, [[1, 2, 1, 2, 1]]);
+            case 6: return new levelSpec_1.PatternLevel(21, [[1], [1], [1], [2], [1], [1], [1]]);
+            case 7: return new levelSpec_1.PatternLevel(5, [
+                [1, 2, 1, 2, 1],
+                [2, 1, 2, 1, 2],
+                [1, 2, 1, 2, 1],
+                [2, 1, 2, 1, 2],
+                [1, 2, 1, 2, 1]
+            ]);
         }
     }
     nextLevel() {

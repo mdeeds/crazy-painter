@@ -61,7 +61,6 @@ export class Critter implements Ticker {
     if (this.timeToNextSprintMs > 0) {
       this.timeToNextSprintMs -= timeDeltaMs;
       if (this.timeToNextSprintMs <= 0) {
-        this.setNewTarget();
         this.speedMps = 2;
       }
     } else {
@@ -73,6 +72,7 @@ export class Critter implements Ticker {
       if (stepSize >= remainingDistance) {
         stepSize = remainingDistance;
         this.speedMps = 0;
+        this.setNewTarget();
         this.timeToNextSprintMs = Math.random() * 500 + 500;
       }
       this.direction.setLength(stepSize);
