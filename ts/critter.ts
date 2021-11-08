@@ -50,9 +50,6 @@ export class Critter implements Ticker {
   squash(worldPosition: any) {
     this.parts.body.entity.object3D.getWorldPosition(this.worldPosition);
     if (worldPosition.distanceTo(this.worldPosition) < 0.2) {
-
-      this.score.add(500);
-      this.eText.addText("+500", this.worldPosition.x, this.worldPosition.y, this.worldPosition.z)
       this.done = true;
     }
   }
@@ -78,7 +75,7 @@ export class Critter implements Ticker {
       }
       this.direction.setLength(stepSize);
       currentPos.add(this.direction);
-      if (currentPos.z < -2.0) {
+      if (currentPos.z < -3.0) {
         this.done = true;
       }
 
