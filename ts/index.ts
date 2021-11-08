@@ -133,8 +133,15 @@ AFRAME.registerComponent("go", {
       if (brush != null) {
         brush.tick(timeMs, timeDeltaMs);
       }
-      for (const t of tickers) {
+      for (let i = 0; i < tickers.length;) {
+        const t = tickers[i];
         t.tick(timeMs, timeDeltaMs);
+        if (t.isDone()) {
+          t.remove();
+          tickers.splice(i, 1);
+        } else {
+          ++i;
+        }
       }
     } catch (e) {
       Debug.set(`Tick error: ${e}`);

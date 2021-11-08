@@ -46,7 +46,7 @@ class TextBlurb {
 
 export type FloatDirection = 'up' | 'down';
 
-export class EphemeralText {
+export class EphemeralText implements Ticker {
   private textItems: TextBlurb[] = [];
   private kCapacity: number = 30;
   private nextSlot = 0;
@@ -68,5 +68,13 @@ export class EphemeralText {
         this.textItems[i].tick(timeMs, timeDeltaMs);
       }
     }
+  }
+
+  isDone() {
+    return false;
+  }
+
+  remove() {
+    throw new Error('Never remove Ephemeral Text.');
   }
 }

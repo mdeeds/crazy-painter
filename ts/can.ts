@@ -72,4 +72,12 @@ export class Can implements Ticker {
       }
     }
   }
+
+  isDone() {
+    return false;
+  }
+
+  remove() {
+    throw new Error('Not implementd.');
+  }
 }

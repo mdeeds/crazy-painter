@@ -74,4 +74,13 @@ export class AnimatedObject implements Ticker {
       this.mixer.update(timeDeltaMs / 1000);
     }
   }
+
+  isDone() {
+    // TODO
+    return false;
+  }
+
+  remove() {
+    this.entity.remove();
+  }
 }

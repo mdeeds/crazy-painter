@@ -100,6 +100,13 @@ class AnimatedObject {
             this.mixer.update(timeDeltaMs / 1000);
         }
     }
+    isDone() {
+        // TODO
+        return false;
+    }
+    remove() {
+        this.entity.remove();
+    }
 }
 exports.AnimatedObject = AnimatedObject;
 //# sourceMappingURL=animatedObject.js.map
@@ -289,14 +296,12 @@ class Brush {
         if (vec.y < 0) {
             vec.y = 0;
         }
-        if (vec.z - this.kBrushRadius < this.wall.wallZ) {
+        if (vec.z <= this.wall.wallZ) {
+            vec.z = this.wall.wallZ;
             obj.getWorldPosition(this.brushPosition);
-            if (vec.z <= this.wall.wallZ) {
-                this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
-                vec.z = this.wall.wallZ;
-                for (const c of this.critters.getCritters()) {
-                    c.squash(this.brushPosition);
-                }
+            this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
+            for (const c of this.critters.getCritters()) {
+                c.squash(this.brushPosition);
             }
         }
     }
@@ -431,6 +436,12 @@ class Can {
             }
         }
     }
+    isDone() {
+        return false;
+    }
+    remove() {
+        throw new Error('Not implementd.');
+    }
 }
 exports.Can = Can;
 //# sourceMappingURL=can.js.map
@@ -483,17 +494,32 @@ class Critter {
         this.assetLibrary = assetLibrary;
         this.feet = [];
         this.done = false;
+        this.targetPosition = new AFRAME.THREE.Vector3();
+        this.speedMps = 2;
+        this.timeToNextSprintMs = 0;
         this.worldPosition = new AFRAME.THREE.Vector3();
+        this.direction = new AFRAME.THREE.Vector3();
         for (const [i, f] of parts.feet.entries()) {
             this.feet.push(new foot_1.Foot(f, this.wall, this.assetLibrary));
         }
+        this.targetPosition.set(Math.random() * 2 - 1, 0, 1);
+        this.parts.body.entity.object3D.position.copy(this.targetPosition);
         // container.appendChild(parts.body.entity);
         // body.object3D.position.z = wall.wallZ;
+        this.setNewTarget();
     }
     isDone() { return this.done; }
     remove() { this.container.remove(); }
+    setNewTarget() {
+        const newZ = this.targetPosition.z - Math.random();
+        this.targetPosition.set(Math.random() * 2 - 1, 0, newZ);
+        const currentPos = this.parts.body.entity.object3D.position;
+        const dz = this.targetPosition.z - currentPos.z;
+        const dx = this.targetPosition.x - currentPos.x;
+        this.parts.body.entity.object3D.rotation.y = Math.atan2(dz, -dx);
+    }
     squash(worldPosition) {
-        this.container.object3D.getWorldPosition(this.worldPosition);
+        this.parts.body.entity.object3D.getWorldPosition(this.worldPosition);
         if (worldPosition.distanceTo(this.worldPosition) < 0.2) {
             this.score.add(500);
             this.eText.addText("+500", this.worldPosition.x, this.worldPosition.y, this.worldPosition.z);
@@ -501,16 +527,33 @@ class Critter {
         }
     }
     tick(timeMs, timeDeltaMs) {
-        // TODO: calculate x-position based on spawnTimeMs.
-        const secondsElapsed = (timeMs - this.spawnTimeMs) / 1000;
-        const mps = (0.35 - 0.15) / (30 / 24);
-        const x = 0.5 + this.wall.kWallWidthMeters / 2 - mps * secondsElapsed;
-        if (x < -this.wall.kWallWidthMeters / 2 - 0.5) {
-            this.done = true;
+        if (this.timeToNextSprintMs > 0) {
+            this.timeToNextSprintMs -= timeDeltaMs;
+            if (this.timeToNextSprintMs <= 0) {
+                this.setNewTarget();
+                this.speedMps = 2;
+            }
         }
-        this.parts.body.entity.object3D.position.x = x;
-        for (const f of this.feet) {
-            f.tick(timeMs, timeDeltaMs);
+        else {
+            this.direction.copy(this.targetPosition);
+            const currentPos = this.parts.body.entity.object3D.position;
+            this.direction.sub(currentPos);
+            const remainingDistance = this.direction.length();
+            let stepSize = this.speedMps * timeDeltaMs / 1000;
+            if (stepSize >= remainingDistance) {
+                stepSize = remainingDistance;
+                this.speedMps = 0;
+                this.timeToNextSprintMs = Math.random() * 500 + 500;
+            }
+            this.direction.setLength(stepSize);
+            currentPos.add(this.direction);
+            if (currentPos.z < -2.0) {
+                this.done = true;
+            }
+            const animationMps = (0.35 - 0.15) / (30 / 24);
+            for (const f of this.feet) {
+                f.tick(timeMs, timeDeltaMs);
+            }
         }
     }
 }
@@ -557,7 +600,7 @@ class CritterSource {
     getCritters() {
         return this.critters;
     }
-    makeTurtle(container, spawnTime) {
+    makeLizard(container, spawnTime) {
         return __awaiter(this, void 0, void 0, function* () {
             const lizard = yield animatedObject_1.AnimatedObject.make('obj/lizard.gltf', this.assetLibrary, container);
             this.lizards.push(lizard);
@@ -582,14 +625,12 @@ class CritterSource {
             }
             this.timeToNextCritterMs -= timeDeltaMs;
             if (this.timeToNextCritterMs <= 0) {
-                this.timeToNextCritterMs = 15000;
+                this.timeToNextCritterMs = 3000;
                 const turtleEnt = document.createElement('a-entity');
-                turtleEnt.setAttribute('position', `0` +
-                    ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
-                    ` ${this.wall.wallZ}`);
+                turtleEnt.setAttribute('position', `0 ${this.wall.wallY} ${this.wall.wallZ}`);
                 turtleEnt.setAttribute('rotation', '90 0 0');
                 document.querySelector('a-scene').appendChild(turtleEnt);
-                const turtle = yield this.makeTurtle(turtleEnt, timeMs);
+                const turtle = yield this.makeLizard(turtleEnt, timeMs);
                 this.critters.push(turtle);
             }
             for (const critter of this.critters) {
@@ -703,6 +744,12 @@ class EphemeralText {
                 this.textItems[i].tick(timeMs, timeDeltaMs);
             }
         }
+    }
+    isDone() {
+        return false;
+    }
+    remove() {
+        throw new Error('Never remove Ephemeral Text.');
     }
 }
 exports.EphemeralText = EphemeralText;
@@ -940,8 +987,16 @@ AFRAME.registerComponent("go", {
             if (brush != null) {
                 brush.tick(timeMs, timeDeltaMs);
             }
-            for (const t of tickers) {
+            for (let i = 0; i < tickers.length;) {
+                const t = tickers[i];
                 t.tick(timeMs, timeDeltaMs);
+                if (t.isDone()) {
+                    t.remove();
+                    tickers.splice(i, 1);
+                }
+                else {
+                    ++i;
+                }
             }
         }
         catch (e) {
@@ -1540,18 +1595,28 @@ SFX.singleton = null;
 
 "use strict";
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Wall = void 0;
-const animatedObject_1 = __webpack_require__(143);
+const AFRAME = __importStar(__webpack_require__(449));
 const debug_1 = __webpack_require__(756);
 class Wall {
     constructor(level, eText, score, assetLibrary, sfx) {
@@ -1565,14 +1630,14 @@ class Wall {
         this.kMetersPerBlock = 0.05;
         this.kPixelsPerBlock = 32;
         this.colorMap = new Map();
-        this.wallObject = null;
         this.wallPosition = null;
         this.tickers = [];
         this.remaining = null;
+        this.done = false;
+        this.entity = null;
         this.tmpPosition = new AFRAME.THREE.Vector3();
         const scene = document.querySelector('a-scene');
-        const wall = document.createElement('a-entity');
-        this.wallObject = wall.object3D;
+        this.entity = document.createElement('a-entity');
         this.canvas = document.createElement('canvas');
         this.canvas.width = 1024;
         this.canvas.height = 1024;
@@ -1587,10 +1652,6 @@ class Wall {
         });
         const wallGeometry = new AFRAME.THREE.PlaneGeometry(1024 / this.kPixelsPerBlock * this.kMetersPerBlock, 1024 / this.kPixelsPerBlock * this.kMetersPerBlock);
         this.wallPosition = new AFRAME.THREE.Vector3(0, this.wallY, this.wallZ);
-        const url = new URL(document.URL);
-        if (url.searchParams.get('doors')) {
-            this.loadDoors();
-        }
         {
             const centerPx = this.kPixelsPerBlock * level.width() / 2;
             const fromLeftM = this.kMetersPerBlock * centerPx / this.kPixelsPerBlock;
@@ -1599,22 +1660,15 @@ class Wall {
             wallGeometry.translate(this.wallPosition.x + deltaM, this.wallPosition.y - deltaM, this.wallPosition.z);
         }
         const wallMesh = new AFRAME.THREE.Mesh(wallGeometry, wallMaterial);
-        wall.object3D = wallMesh;
-        scene.appendChild(wall);
+        this.entity.object3D = wallMesh;
+        scene.appendChild(this.entity);
         this.blocks = new Uint8ClampedArray(level.width() * level.height());
         this.colorMap = level.getColorMap();
         this.updateCanvas();
     }
-    loadDoors() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const scene = document.querySelector('a-scene');
-            const doorContainer = document.createElement('a-entity');
-            doorContainer.setAttribute('position', `0 ${this.wallY} ${this.wallZ}`);
-            scene.appendChild(doorContainer);
-            const doors = yield animatedObject_1.AnimatedObject.make('obj/oven doors.gltf', this.assetLibrary, doorContainer);
-            doors.fadeTo(5, 0.25);
-            this.tickers.push(doors);
-        });
+    isDone() { return this.done; }
+    remove() {
+        this.entity.remove();
     }
     updateCanvas() {
         const ctx = this.canvas.getContext('2d');
@@ -1736,6 +1790,7 @@ class Wall {
                 }
                 this.remaining -= deltaPoints;
                 if (this.remaining === 0) {
+                    this.done = true;
                     this.sfx.complete();
                 }
             }
