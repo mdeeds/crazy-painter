@@ -124,12 +124,12 @@ export class Brush {
     const xRad = Math.atan2(this.leftMinusRight.y, this.leftMinusRight.z);
     const yRad = Math.atan2(this.leftMinusRight.z, this.leftMinusRight.x);
 
-    const distance = this.leftMinusRight.length();
+    const distance = this.leftMinusRight.length() * 2;
     if (distance > 0) {
       this.updatePole(this.leftMinusRight, this.leftHand.position, this.rightHand.position);
       // this.pole.object3D.rotation.set(xRad, yRad, 0);
     }
-    this.leftMinusRight.normalize().multiplyScalar(Math.max(distance, 0.4));
+    this.leftMinusRight.setLength(Math.max(distance, 0.4));
     // this.leftMinusRight.normalize().multiplyScalar(0.4);
     this.leftBrush.obj.position.copy(this.leftHand.position);
     this.leftBrush.obj.position.add(this.leftMinusRight);
