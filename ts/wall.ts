@@ -201,7 +201,10 @@ export class Wall implements Ticker {
     let steps = Math.round(Math.max(Math.abs(i2 - i1), Math.abs(j2 - j1))) + 1;
     // Debug.set('steps', `${steps}`);
     while (steps > 0) {
-      cb(Math.round(i), Math.round(j));
+      if (i >= 0 && j >= 0 &&
+        i < this.level.width() && j < this.level.width()) {
+        cb(Math.round(i), Math.round(j));
+      }
       i += di;
       j += dj;
       --steps;
