@@ -662,19 +662,25 @@ class Debug {
     static init() {
         const container = document.querySelector('a-camera');
         Debug.text = document.createElement('a-entity');
-        Debug.text.setAttribute('text', `value: ${new Date().toLocaleString()};`);
+        this.set('ts', `${new Date().toLocaleString()}`);
         Debug.text.setAttribute('width', '0.25');
         Debug.text.setAttribute('position', '0 0.2 -0.9');
         container.appendChild(Debug.text);
     }
-    static set(message) {
+    static set(key, message) {
+        this.messages.set(key, message);
+        let text = "";
         if (Debug.text) {
-            Debug.text.setAttribute('text', `value: ${message};`);
+            for (const [k, v] of this.messages.entries()) {
+                text = text + `${k}: ${v}\n`;
+            }
+            Debug.text.setAttribute('text', `value: ${text};`);
         }
     }
 }
 exports.Debug = Debug;
 Debug.text = null;
+Debug.messages = new Map();
 //# sourceMappingURL=debug.js.map
 
 /***/ }),
@@ -998,20 +1004,20 @@ AFRAME.registerComponent("go", {
             }
         }
         catch (e) {
-            debug_1.Debug.set(`Tick error: ${e}`);
+            debug_1.Debug.set('error', `Tick error: ${e}`);
             const url = new URL(document.URL);
             if (url.searchParams.get('throw')) {
                 throw e;
             }
         }
-        if (timeMs >= 10000) {
+        if (timeMs >= 1000) {
             totalElapsed -= previousTicks[tickNumber];
             totalElapsed += timeDeltaMs;
             previousTicks[tickNumber] = timeDeltaMs;
             tickNumber = (tickNumber + 1) % previousTicks.length;
             const fps = previousTicks.length * 1000 / totalElapsed;
             if (tickNumber % 15 === 0) {
-                debug_1.Debug.set(`${fps.toFixed(1)} fps`);
+                debug_1.Debug.set('fps', `${fps.toFixed(1)}`);
             }
         }
     }
@@ -1057,12 +1063,13 @@ class LevelSource {
         this.currentLevel = 0;
     }
     getLevelSpec(levelNumber) {
-        switch (levelNumber % 5) {
+        switch (levelNumber % 6) {
             case 0: return new levelSpec_1.SmallLevel();
             case 1: return new levelSpec_1.LargeLevel();
             case 2: return new levelSpec_1.PatternLevel(12, [[1, 2]]);
             case 3: return new levelSpec_1.PatternLevel(12, [[1], [2]]);
             case 4: return new levelSpec_1.PatternLevel(15, [[1, 1, 1], [1, 2, 1], [1, 1, 1]]);
+            case 5: return new levelSpec_1.PatternLevel(15, [[1, 2, 1, 2, 1]]);
         }
     }
     nextLevel() {
@@ -1125,7 +1132,7 @@ class SmallLevel extends AbstractLevel {
 exports.SmallLevel = SmallLevel;
 class PatternLevel extends AbstractLevel {
     constructor(size, pattern) {
-        super(['4444', '#f80', '#0f0']);
+        super(['#444', '#f80', '#0f0']);
         this.size = size;
         this.pattern = pattern;
     }
@@ -1727,10 +1734,12 @@ class Wall {
         const boxWidth = this.kPixelsPerBlock;
         for (const [colorIndex, color] of this.colorMap.entries()) {
             ctx.fillStyle = color;
+            let numSet = 0;
             for (let i = 0; i < this.level.width(); ++i) {
                 for (let j = 0; j < this.level.height(); ++j) {
                     if (this.blocks[i + j * this.level.width()] === colorIndex) {
                         ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1, boxWidth - 2, boxWidth - 2);
+                        ++numSet;
                     }
                 }
             }
@@ -1847,7 +1856,7 @@ class Wall {
             }
         }
         catch (e) {
-            debug_1.Debug.set(`error: ${e}`);
+            debug_1.Debug.set('error', `${e}`);
         }
     }
     getColor(brushPosition) {

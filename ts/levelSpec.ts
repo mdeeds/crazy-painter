@@ -51,7 +51,7 @@ export class SmallLevel extends AbstractLevel implements LevelSpec {
 
 export class PatternLevel extends AbstractLevel implements LevelSpec {
   constructor(private size: number, private pattern: number[][]) {
-    super(['4444', '#f80', '#0f0']);
+    super(['#444', '#f80', '#0f0']);
   }
   width() { return this.size; }
   height() { return this.size; }

@@ -86,11 +86,13 @@ export class Wall implements Ticker {
     const boxWidth = this.kPixelsPerBlock;
     for (const [colorIndex, color] of this.colorMap.entries()) {
       ctx.fillStyle = color;
+      let numSet = 0;
       for (let i = 0; i < this.level.width(); ++i) {
         for (let j = 0; j < this.level.height(); ++j) {
           if (this.blocks[i + j * this.level.width()] === colorIndex) {
             ctx.fillRect(i * boxWidth + 1, j * boxWidth + 1,
               boxWidth - 2, boxWidth - 2);
+            ++numSet;
           }
         }
       }
@@ -214,7 +216,7 @@ export class Wall implements Ticker {
         }
       }
     } catch (e) {
-      Debug.set(`error: ${e}`);
+      Debug.set('error', `${e}`);
     }
   }
 

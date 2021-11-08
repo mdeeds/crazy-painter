@@ -156,21 +156,21 @@ AFRAME.registerComponent("go", {
         }
       }
     } catch (e) {
-      Debug.set(`Tick error: ${e}`);
+      Debug.set('error', `Tick error: ${e}`);
       const url = new URL(document.URL);
       if (url.searchParams.get('throw')) {
         throw e;
       }
     }
 
-    if (timeMs >= 10000) {
+    if (timeMs >= 1000) {
       totalElapsed -= previousTicks[tickNumber];
       totalElapsed += timeDeltaMs;
       previousTicks[tickNumber] = timeDeltaMs;
       tickNumber = (tickNumber + 1) % previousTicks.length;
       const fps = previousTicks.length * 1000 / totalElapsed;
       if (tickNumber % 15 === 0) {
-        Debug.set(`${fps.toFixed(1)} fps`);
+        Debug.set('fps', `${fps.toFixed(1)}`);
       }
     }
   }

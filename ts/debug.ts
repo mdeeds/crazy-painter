@@ -2,18 +2,24 @@ import * as AFRAME from "aframe";
 
 export class Debug {
   private static text: AFRAME.Entity = null;
+  private static messages = new Map<string, string>();
   static init() {
     const container = document.querySelector('a-camera');
     Debug.text = document.createElement('a-entity');
-    Debug.text.setAttribute('text', `value: ${new Date().toLocaleString()};`);
+    this.set('ts', `${new Date().toLocaleString()}`);
     Debug.text.setAttribute('width', '0.25');
     Debug.text.setAttribute('position', '0 0.2 -0.9');
     container.appendChild(Debug.text);
   }
 
-  static set(message: string) {
+  static set(key: string, message: string) {
+    this.messages.set(key, message);
+    let text = "";
     if (Debug.text) {
-      Debug.text.setAttribute('text', `value: ${message};`);
+      for (const [k, v] of this.messages.entries()) {
+        text = text + `${k}: ${v}\n`;
+      }
+      Debug.text.setAttribute('text', `value: ${text};`);
     }
   }
 }
