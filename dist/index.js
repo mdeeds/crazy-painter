@@ -1057,9 +1057,12 @@ class LevelSource {
         this.currentLevel = 0;
     }
     getLevelSpec(levelNumber) {
-        switch (levelNumber % 2) {
+        switch (levelNumber % 5) {
             case 0: return new levelSpec_1.SmallLevel();
             case 1: return new levelSpec_1.LargeLevel();
+            case 2: return new levelSpec_1.PatternLevel(12, [[1, 2]]);
+            case 3: return new levelSpec_1.PatternLevel(12, [[1], [2]]);
+            case 4: return new levelSpec_1.PatternLevel(15, [[1, 1, 1], [1, 2, 1], [1, 1, 1]]);
         }
     }
     nextLevel() {
@@ -1079,7 +1082,7 @@ exports.LevelSource = LevelSource;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.SmallLevel = exports.LargeLevel = void 0;
+exports.PatternLevel = exports.SmallLevel = exports.LargeLevel = void 0;
 class AbstractLevel {
     constructor(colors) {
         this.colorMapInternal = new Map();
@@ -1103,8 +1106,8 @@ class AbstractLevel {
     }
 }
 class LargeLevel extends AbstractLevel {
-    width() { return 30; }
-    height() { return 30; }
+    width() { return 20; }
+    height() { return 20; }
     paintColorNumber(i, j) { return 1; }
     constructor() {
         super(['#444', '#f80']);
@@ -1120,6 +1123,21 @@ class SmallLevel extends AbstractLevel {
     }
 }
 exports.SmallLevel = SmallLevel;
+class PatternLevel extends AbstractLevel {
+    constructor(size, pattern) {
+        super(['4444', '#f80', '#0f0']);
+        this.size = size;
+        this.pattern = pattern;
+    }
+    width() { return this.size; }
+    height() { return this.size; }
+    paintColorNumber(i, j) {
+        const pi = Math.floor(i / this.size * this.pattern[0].length);
+        const pj = Math.floor(j / this.size * this.pattern.length);
+        return this.pattern[pj][pi];
+    }
+}
+exports.PatternLevel = PatternLevel;
 //# sourceMappingURL=levelSpec.js.map
 
 /***/ }),

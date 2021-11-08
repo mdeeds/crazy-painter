@@ -32,8 +32,8 @@ class AbstractLevel {
 }
 
 export class LargeLevel extends AbstractLevel implements LevelSpec {
-  width() { return 30; }
-  height() { return 30; }
+  width() { return 20; }
+  height() { return 20; }
   paintColorNumber(i: number, j: number) { return 1; }
   constructor() {
     super(['#444', '#f80']);
@@ -46,5 +46,18 @@ export class SmallLevel extends AbstractLevel implements LevelSpec {
   paintColorNumber(i: number, j: number) { return 1; }
   constructor() {
     super(['#444', '#f80']);
+  }
+}
+
+export class PatternLevel extends AbstractLevel implements LevelSpec {
+  constructor(private size: number, private pattern: number[][]) {
+    super(['4444', '#f80', '#0f0']);
+  }
+  width() { return this.size; }
+  height() { return this.size; }
+  paintColorNumber(i: number, j: number) {
+    const pi = Math.floor(i / this.size * this.pattern[0].length);
+    const pj = Math.floor(j / this.size * this.pattern.length);
+    return this.pattern[pj][pi];
   }
 }
