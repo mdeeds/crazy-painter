@@ -30,7 +30,7 @@ export class CritterSource {
     return this.critters;
   }
 
-  private async makeTurtle(container: AFRAME.Entity, spawnTime: number): Promise<Critter> {
+  private async makeLizard(container: AFRAME.Entity, spawnTime: number): Promise<Critter> {
     const lizard = await AnimatedObject.make(
       'obj/lizard.gltf', this.assetLibrary, container);
     this.lizards.push(lizard);
@@ -58,15 +58,13 @@ export class CritterSource {
     }
     this.timeToNextCritterMs -= timeDeltaMs;
     if (this.timeToNextCritterMs <= 0) {
-      this.timeToNextCritterMs = 15000;
+      this.timeToNextCritterMs = 3000;
       const turtleEnt = document.createElement('a-entity');
       turtleEnt.setAttribute('position',
-        `0` +
-        ` ${(Math.random() - 0.5) * this.wall.kWallHeightMeters + this.wall.wallY}` +
-        ` ${this.wall.wallZ}`);
+        `0 ${this.wall.wallY} ${this.wall.wallZ}`);
       turtleEnt.setAttribute('rotation', '90 0 0');
       document.querySelector('a-scene').appendChild(turtleEnt);
-      const turtle = await this.makeTurtle(
+      const turtle = await this.makeLizard(
         turtleEnt, timeMs);
       this.critters.push(turtle);
     }
