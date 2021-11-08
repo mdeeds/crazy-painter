@@ -29,15 +29,17 @@ export class Critter implements Ticker {
     this.parts.body.entity.object3D.position.copy(this.targetPosition);
     // container.appendChild(parts.body.entity);
     // body.object3D.position.z = wall.wallZ;
-    this.setNewTarget();
+
+    // The first sprint needs to be short so the player has a chance.
+    this.setNewTarget(0.2);
   }
 
   isDone() { return this.done; }
 
   remove() { this.container.remove(); }
 
-  private setNewTarget() {
-    const newZ = this.targetPosition.z - Math.random();
+  private setNewTarget(maxHeight: number = 1.0) {
+    const newZ = this.targetPosition.z - Math.random() * maxHeight;
     this.targetPosition.set(Math.random() * 2 - 1, 0, newZ);
     const currentPos = this.parts.body.entity.object3D.position;
     const dz = this.targetPosition.z - currentPos.z;
