@@ -84,14 +84,12 @@ export class Brush {
     if (vec.y < 0) {
       vec.y = 0;
     }
-    if (vec.z - this.kBrushRadius < this.wall.wallZ) {
+    if (vec.z <= this.wall.wallZ) {
+      vec.z = this.wall.wallZ;
       obj.getWorldPosition(this.brushPosition);
-      if (vec.z <= this.wall.wallZ) {
-        this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
-        vec.z = this.wall.wallZ;
-        for (const c of this.critters.getCritters()) {
-          c.squash(this.brushPosition);
-        }
+      this.wall.paint(this.brushPosition, this.kBrushRadius, brush);
+      for (const c of this.critters.getCritters()) {
+        c.squash(this.brushPosition);
       }
     }
   }

@@ -32,7 +32,7 @@ export class Critter implements Ticker {
 
   private worldPosition = new AFRAME.THREE.Vector3();
   squash(worldPosition: any) {
-    this.container.object3D.getWorldPosition(this.worldPosition);
+    this.parts.body.entity.object3D.getWorldPosition(this.worldPosition);
     if (worldPosition.distanceTo(this.worldPosition) < 0.2) {
 
       this.score.add(500);
