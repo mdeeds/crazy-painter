@@ -14,15 +14,12 @@ export class WallHandle {
 }
 
 class PaintState {
-  brushRadius: number;
   hasChanges = false;
   deltaPoints = 0;
   paintUsed = 0;
   sum_x = 0;
   sum_y = 0;
-  constructor(radius: number, kMetersPerBlock: number, public newColor: number) {
-    this.brushRadius = radius / kMetersPerBlock;
-  }
+  constructor(kMetersPerBlock: number, public newColor: number) { }
 }
 
 export class Wall implements Ticker {
@@ -185,9 +182,11 @@ export class Wall implements Ticker {
       dj = Math.sign(j2 - j1);
       di = (i2 - i1) / Math.abs(j2 - j1);
     }
+    // Debug.set('doLine', `${di} ${dj}`);
     let i = i1;
     let j = j1;
-    let steps = Math.max(Math.abs(i2 - i1), Math.abs(j2 - j1));
+    let steps = Math.round(Math.max(Math.abs(i2 - i1), Math.abs(j2 - j1))) + 1;
+    // Debug.set('steps', `${steps}`);
     while (steps > 0) {
       cb(Math.round(i), Math.round(j));
       i += di;
@@ -250,24 +249,56 @@ export class Wall implements Ticker {
   }
 
   private tmpPosition = new AFRAME.THREE.Vector3();
-  public paint(brushPosition: any, radius: number, brush: Painter) {
+  public paintCircle(brushPosition: any, radius: number, brush: Painter) {
     try {
       const [ci, cj] = this.getIJForPosition(brushPosition);
       if (ci === null) {
         return;
       }
-      const paintState = new PaintState(radius, this.kMetersPerBlock,
+      const paintState = new PaintState(this.kMetersPerBlock,
         this.level.getIndexForColor(brush.getColor()));
       const brushRadius = radius / this.kMetersPerBlock;
       this.doCircle(ci, cj, brushRadius, this.handlePaintFactory(paintState, brush));
       this.finishBrushing(paintState, brush);
     } catch (e) {
-      Debug.set('paint error', `${e}`);
+      // Debug.set('paint error', `${e}`);
       if (new URL(document.URL).searchParams.get('throw')) {
         throw e;
       }
     }
   }
+
+  public paintLine(fromPosition: any, toPosition: any, brush: Painter) {
+    const [i1, j1] = this.getIJForPosition(fromPosition);
+    const [i2, j2] = this.getIJForPosition(toPosition);
+    if (i1 === null || i2 === null) {
+      return;
+    }
+    const paintState = new PaintState(this.kMetersPerBlock,
+      this.level.getIndexForColor(brush.getColor()));
+    this.doLine(i1, j1, i2, j2, this.handlePaintFactory(paintState, brush));
+    this.finishBrushing(paintState, brush);
+  }
+
+  public pickUpLine(fromPosition: any, toPosition: any): string {
+    const [i1, j1] = this.getIJForPosition(fromPosition);
+    const [i2, j2] = this.getIJForPosition(toPosition);
+    if (i1 === null || i2 === null) {
+      return null;
+    }
+    let color: string = null;
+    this.doLine(i1, j1, i2, j2, (i: number, j: number) => {
+      const colorNumber = this.blocks[i + j * this.level.width()];
+      if (colorNumber !== 0) {
+        color = this.colorMap.get(colorNumber);
+      }
+    });
+    if (color !== null) {
+      // Debug.set('pickup', color);
+    }
+    return color;
+  }
+
 
   public getColor(brushPosition: any): string {
     const [ci, cj] = this.getIJForPosition(brushPosition);

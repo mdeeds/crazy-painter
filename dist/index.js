@@ -299,7 +299,7 @@ class Brush {
         if (vec.z <= this.wallHandle.wall.wallZ) {
             vec.z = this.wallHandle.wall.wallZ;
             obj.getWorldPosition(this.brushPosition);
-            this.wallHandle.wall.paint(this.brushPosition, this.kBrushRadius, brush);
+            this.wallHandle.wall.paintCircle(this.brushPosition, this.kBrushRadius, brush);
             for (const c of this.critters.getCritters()) {
                 c.squash(this.brushPosition);
             }
@@ -794,23 +794,25 @@ class Foot {
         this.wallHandle = wallHandle;
         this.assetLibrary = assetLibrary;
         this.color = null;
+        this.previousWorldPosition = new AFRAME.THREE.Vector3();
         this.worldPosition = new AFRAME.THREE.Vector3();
-        this.initialPosition = new AFRAME.THREE.Vector3();
-        this.initialPosition.copy(footObject3D.position);
+        this.previousWorldPosition.copy(footObject3D.position);
     }
-    getSupply() { return this.color != null ? 1 : 0; }
+    getSupply() { return this.color != null ? 1e6 : 0; }
     removeSupply(n) { }
     getColor() { return this.color; }
     tick(timeMs, timeDeltaMs) {
         this.footObject3D.getWorldPosition(this.worldPosition);
-        const wallColor = this.wallHandle.wall.getColor(this.worldPosition);
-        if (wallColor === null && this.color !== null) {
-            this.wallHandle.wall.paint(this.worldPosition, this.wallHandle.wall.kMetersPerBlock * 1.4, this);
+        if (this.color === null) {
+            this.color = this.wallHandle.wall.pickUpLine(this.previousWorldPosition, this.worldPosition);
+            if (this.color !== null) {
+                // Debug.set('got', this.color);
+            }
         }
-        else if (wallColor !== null && this.color != wallColor) {
-            this.color = wallColor;
-            // this.footObject3D.material = this.assetLibrary.getNeonTexture(this.color);
+        else {
+            this.wallHandle.wall.paintLine(this.previousWorldPosition, this.worldPosition, this);
         }
+        this.previousWorldPosition.copy(this.worldPosition);
     }
 }
 exports.Foot = Foot;
@@ -1572,9 +1574,10 @@ const Tone = __importStar(__webpack_require__(784));
 const positron_1 = __webpack_require__(544);
 class SFX {
     constructor(pointConfig) {
-        this.pointTones = ['E4', 'A4', 'C5', 'G5'];
         this.pointSounds = [];
-        for (const note of this.pointTones) {
+        this.pointTones = ['C5', 'C5', 'A5', 'G5', 'E5', 'G5', 'C6', 'A5', 'C5', 'C5', 'A5', 'G5', 'C5', 'E5'];
+        this.pointIndex = 0;
+        for (let i = 0; i < 6; ++i) {
             const p = new positron_1.Positron(pointConfig);
             p.setVolume(0.05);
             this.pointSounds.push(p);
@@ -1609,8 +1612,8 @@ class SFX {
         });
     }
     point() {
-        const i = Math.trunc(Math.random() * this.pointTones.length);
-        this.pointSounds[i].triggerAttackRelease(this.pointTones[i], '8n', null);
+        this.pointSounds[this.pointIndex % this.pointSounds.length].triggerAttackRelease(this.pointTones[this.pointIndex], '8n', null);
+        this.pointIndex = (this.pointIndex + 1) % this.pointTones.length;
     }
     minusPoint() {
         const notes = [
@@ -1669,13 +1672,22 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Wall = exports.WallHandle = void 0;
 const AFRAME = __importStar(__webpack_require__(449));
-const debug_1 = __webpack_require__(756);
 class WallHandle {
     constructor() {
         this.wall = null;
     }
 }
 exports.WallHandle = WallHandle;
+class PaintState {
+    constructor(kMetersPerBlock, newColor) {
+        this.newColor = newColor;
+        this.hasChanges = false;
+        this.deltaPoints = 0;
+        this.paintUsed = 0;
+        this.sum_x = 0;
+        this.sum_y = 0;
+    }
+}
 class Wall {
     constructor(level, eText, score, assetLibrary, sfx) {
         this.level = level;
@@ -1785,79 +1797,140 @@ class Wall {
         const cj = (this.level.height() * this.tmpPosition.y) - 0.5;
         return [ci, cj];
     }
-    paint(brushPosition, radius, brush) {
+    // ci, cj, and brushRadius describe a circle.  ci and cj may be
+    // floating point numbers.  Calls cb for all integer i,j inside that circle.
+    doCircle(ci, cj, brushRadius, cb) {
+        for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
+            if (i < 0 || i >= this.level.width()) {
+                continue;
+            }
+            for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
+                if (j < 0 || j >= this.level.height()) {
+                    continue;
+                }
+                const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
+                if (r2 < brushRadius * brushRadius) {
+                    cb(i, j);
+                }
+            }
+        }
+    }
+    doLine(i1, j1, i2, j2, cb) {
+        let di, dj;
+        if (Math.abs(i2 - i1) > Math.abs(j2 - j1)) {
+            di = Math.sign(i2 - i1);
+            dj = (j2 - j1) / Math.abs(i2 - i1);
+        }
+        else {
+            dj = Math.sign(j2 - j1);
+            di = (i2 - i1) / Math.abs(j2 - j1);
+        }
+        // Debug.set('doLine', `${di} ${dj}`);
+        let i = i1;
+        let j = j1;
+        let steps = Math.round(Math.max(Math.abs(i2 - i1), Math.abs(j2 - j1))) + 1;
+        // Debug.set('steps', `${steps}`);
+        while (steps > 0) {
+            cb(Math.round(i), Math.round(j));
+            i += di;
+            j += dj;
+            --steps;
+        }
+    }
+    handlePaintFactory(paintState, brush) {
+        return (i, j) => {
+            if (paintState.deltaPoints >= brush.getSupply()) {
+                return;
+            }
+            const oldColor = this.blocks[i + j * this.level.width()];
+            const desiredColor = this.level.paintColorNumber(i, j);
+            if (oldColor !== paintState.newColor) {
+                if (Math.random() * 20 > brush.getSupply()) {
+                    return;
+                }
+                this.blocks[i + j * this.level.width()] = paintState.newColor;
+                if (paintState.newColor === desiredColor) {
+                    ++paintState.deltaPoints;
+                }
+                else if (oldColor === desiredColor) {
+                    --paintState.deltaPoints;
+                }
+                // TODO: award points if the color is correct.
+                // TODO: deduct points if color is incorrect.
+                const wx = this.worldXForI(i);
+                const wy = this.worldYForJ(j);
+                paintState.sum_x += wx;
+                paintState.sum_y += wy;
+                ++paintState.paintUsed;
+                paintState.hasChanges = true;
+            }
+        };
+    }
+    finishBrushing(paintState, brush) {
+        if (paintState.hasChanges) {
+            this.updateCanvas();
+            this.score.add(paintState.deltaPoints);
+            brush.removeSupply(paintState.deltaPoints);
+            if (paintState.deltaPoints > 0) {
+                this.sfx.point();
+                this.eText.addText(`+${paintState.deltaPoints}`, paintState.sum_x / paintState.paintUsed, paintState.sum_y / paintState.paintUsed, this.wallZ + Math.random() * 0.05);
+            }
+            else if (paintState.deltaPoints < 0) {
+                this.eText.addText(`${paintState.deltaPoints}`, paintState.sum_x / paintState.paintUsed, paintState.sum_y / paintState.paintUsed, this.wallZ + Math.random() * 0.05, 'down');
+                this.sfx.minusPoint();
+            }
+            this.remaining -= paintState.deltaPoints;
+            if (this.remaining === 0) {
+                this.done = true;
+                this.sfx.complete();
+            }
+        }
+    }
+    paintCircle(brushPosition, radius, brush) {
         try {
             const [ci, cj] = this.getIJForPosition(brushPosition);
             if (ci === null) {
                 return;
             }
+            const paintState = new PaintState(this.kMetersPerBlock, this.level.getIndexForColor(brush.getColor()));
             const brushRadius = radius / this.kMetersPerBlock;
-            let hasChanges = false;
-            let deltaPoints = 0;
-            let paintUsed = 0;
-            let sum_x = 0;
-            let sum_y = 0;
-            const newColor = this.level.getIndexForColor(brush.getColor());
-            for (let i = Math.floor(ci - brushRadius); i <= Math.ceil(ci + brushRadius); ++i) {
-                if (i < 0 || i >= this.level.width()) {
-                    continue;
-                }
-                for (let j = Math.floor(cj - brushRadius); j <= Math.ceil(cj + brushRadius); ++j) {
-                    if (j < 0 || j >= this.level.height()) {
-                        continue;
-                    }
-                    if (deltaPoints >= brush.getSupply()) {
-                        continue;
-                    }
-                    const r2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
-                    if (r2 < brushRadius * brushRadius) {
-                        const oldColor = this.blocks[i + j * this.level.width()];
-                        const desiredColor = this.level.paintColorNumber(i, j);
-                        if (oldColor !== newColor) {
-                            if (Math.random() * 20 > brush.getSupply()) {
-                                continue;
-                            }
-                            this.blocks[i + j * this.level.width()] = newColor;
-                            if (newColor === desiredColor) {
-                                ++deltaPoints;
-                            }
-                            else if (oldColor === desiredColor) {
-                                --deltaPoints;
-                            }
-                            // TODO: award points if the color is correct.
-                            // TODO: deduct points if color is incorrect.
-                            const wx = this.worldXForI(i);
-                            const wy = this.worldYForJ(j);
-                            sum_x += wx;
-                            sum_y += wy;
-                            ++paintUsed;
-                            hasChanges = true;
-                        }
-                    }
-                }
-            }
-            if (hasChanges) {
-                this.updateCanvas();
-                this.score.add(deltaPoints);
-                brush.removeSupply(deltaPoints);
-                if (deltaPoints > 0) {
-                    this.sfx.point();
-                    this.eText.addText(`+${deltaPoints}`, sum_x / paintUsed, sum_y / paintUsed, this.wallZ + Math.random() * 0.05);
-                }
-                else if (deltaPoints < 0) {
-                    this.eText.addText(`${deltaPoints}`, sum_x / paintUsed, sum_y / paintUsed, this.wallZ + Math.random() * 0.05, 'down');
-                    this.sfx.minusPoint();
-                }
-                this.remaining -= deltaPoints;
-                if (this.remaining === 0) {
-                    this.done = true;
-                    this.sfx.complete();
-                }
-            }
+            this.doCircle(ci, cj, brushRadius, this.handlePaintFactory(paintState, brush));
+            this.finishBrushing(paintState, brush);
         }
         catch (e) {
-            debug_1.Debug.set('error', `${e}`);
+            // Debug.set('paint error', `${e}`);
+            if (new URL(document.URL).searchParams.get('throw')) {
+                throw e;
+            }
         }
+    }
+    paintLine(fromPosition, toPosition, brush) {
+        const [i1, j1] = this.getIJForPosition(fromPosition);
+        const [i2, j2] = this.getIJForPosition(toPosition);
+        if (i1 === null || i2 === null) {
+            return;
+        }
+        const paintState = new PaintState(this.kMetersPerBlock, this.level.getIndexForColor(brush.getColor()));
+        this.doLine(i1, j1, i2, j2, this.handlePaintFactory(paintState, brush));
+        this.finishBrushing(paintState, brush);
+    }
+    pickUpLine(fromPosition, toPosition) {
+        const [i1, j1] = this.getIJForPosition(fromPosition);
+        const [i2, j2] = this.getIJForPosition(toPosition);
+        if (i1 === null || i2 === null) {
+            return null;
+        }
+        let color = null;
+        this.doLine(i1, j1, i2, j2, (i, j) => {
+            const colorNumber = this.blocks[i + j * this.level.width()];
+            if (colorNumber !== 0) {
+                color = this.colorMap.get(colorNumber);
+            }
+        });
+        if (color !== null) {
+            // Debug.set('pickup', color);
+        }
+        return color;
     }
     getColor(brushPosition) {
         const [ci, cj] = this.getIJForPosition(brushPosition);

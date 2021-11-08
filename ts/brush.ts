@@ -87,7 +87,7 @@ export class Brush {
     if (vec.z <= this.wallHandle.wall.wallZ) {
       vec.z = this.wallHandle.wall.wallZ;
       obj.getWorldPosition(this.brushPosition);
-      this.wallHandle.wall.paint(this.brushPosition, this.kBrushRadius, brush);
+      this.wallHandle.wall.paintCircle(this.brushPosition, this.kBrushRadius, brush);
       for (const c of this.critters.getCritters()) {
         c.squash(this.brushPosition);
       }

@@ -13,20 +13,25 @@ export class Foot implements Painter {
 
   }
 
-  getSupply() { return this.color != null ? 1 : 0; }
+  getSupply() { return this.color != null ? 1e6 : 0; }
   removeSupply(n: number) { }
   getColor() { return this.color }
 
   private previousWorldPosition = new AFRAME.THREE.Vector3();
   private worldPosition = new AFRAME.THREE.Vector3();
+
   tick(timeMs: number, timeDeltaMs: number) {
     this.footObject3D.getWorldPosition(this.worldPosition);
-    // if (this.color === null) {
-    //   this.color = this.wallHandle.wall.pickUpLine(
-    //     this.previousWorldPosition, this.worldPosition);
-    // } else {
-    //   this.wallHandle.wall.paintLine(
-    //     this.previousWorldPosition, this.worldPosition, this);
-    // }
+    if (this.color === null) {
+      this.color = this.wallHandle.wall.pickUpLine(
+        this.previousWorldPosition, this.worldPosition);
+      if (this.color !== null) {
+        // Debug.set('got', this.color);
+      }
+    } else {
+      this.wallHandle.wall.paintLine(
+        this.previousWorldPosition, this.worldPosition, this);
+    }
+    this.previousWorldPosition.copy(this.worldPosition);
   }
 }
