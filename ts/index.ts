@@ -12,6 +12,7 @@ import { LargeLevel, SmallLevel } from "./levelSpec";
 import { AnimatedObject } from "./animatedObject";
 import { SFX } from "./sfx";
 import { LevelSource } from "./levelSource";
+import { Octohedron } from "./octohedron";
 
 var brush = null;
 var levelSource = new LevelSource();
@@ -28,6 +29,14 @@ var tickNumber = 0;
 var previousTicks = new Float32Array(60);
 
 function makeRoom(scene: AFRAME.Entity, assetLibrary: AssetLibrary) {
+  if (new URL(document.URL).searchParams.get('octohedron')) {
+    const oct = new Octohedron(scene);
+  } else {
+    makeCleanRoom(scene, assetLibrary);
+  }
+}
+
+function makeCleanRoom(scene: AFRAME.Entity, assetLibrary: AssetLibrary) {
   const model = document.createElement('a-entity');
   model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/clean-room.gltf')}`);
   const url = new URL(document.URL);

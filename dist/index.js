@@ -868,6 +868,7 @@ const assetLibrary_1 = __webpack_require__(673);
 const critterSource_1 = __webpack_require__(107);
 const sfx_1 = __webpack_require__(932);
 const levelSource_1 = __webpack_require__(421);
+const octohedron_1 = __webpack_require__(80);
 var brush = null;
 var levelSource = new levelSource_1.LevelSource();
 var wallHandle = new wall_1.WallHandle();
@@ -881,6 +882,14 @@ var totalElapsed = 0;
 var tickNumber = 0;
 var previousTicks = new Float32Array(60);
 function makeRoom(scene, assetLibrary) {
+    if (new URL(document.URL).searchParams.get('octohedron')) {
+        const oct = new octohedron_1.Octohedron(scene);
+    }
+    else {
+        makeCleanRoom(scene, assetLibrary);
+    }
+}
+function makeCleanRoom(scene, assetLibrary) {
     const model = document.createElement('a-entity');
     model.setAttribute('gltf-model', `#${assetLibrary.getId('obj/clean-room.gltf')}`);
     const url = new URL(document.URL);
@@ -1193,6 +1202,204 @@ class PatternLevel extends AbstractLevel {
 }
 exports.PatternLevel = PatternLevel;
 //# sourceMappingURL=levelSpec.js.map
+
+/***/ }),
+
+/***/ 80:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Octohedron = void 0;
+const AFRAME = __importStar(__webpack_require__(449));
+class uvPair {
+    constructor(u, v) {
+        this.u = u;
+        this.v = v;
+        if (this.v === 0 || this.v === uvPair.kMaxV) {
+            this.u = 0;
+        }
+    }
+    static mid(a, b) {
+        if (a.v === 0 || a.v === uvPair.kMaxV) {
+            a.u = b.u;
+        }
+        else if (b.v === 0 || b.v === uvPair.kMaxV) {
+            b.u = a.u;
+        }
+        return new uvPair(Math.round((a.u + b.u) / 2), Math.round((a.v + b.v) / 2));
+    }
+    equals(other) {
+        if (this.v === 0 && other.v === 0) {
+            return true;
+        }
+        if (this.v === uvPair.kMaxV && other.v === uvPair.kMaxV) {
+            return true;
+        }
+        return (this.v === other.v && this.u === other.u);
+    }
+    close(other) {
+        if (this.v <= 1 && other.v <= 1) {
+            return true;
+        }
+        if (this.v >= uvPair.kMaxV - 1 && other.v >= uvPair.kMaxV - 1) {
+            return true;
+        }
+        return (Math.abs(this.v - other.v) <= 1 &&
+            Math.abs(this.u - other.u) <= 1);
+    }
+}
+uvPair.kWidth = 360;
+uvPair.kMaxV = 179;
+class Octohedron {
+    constructor(scene) {
+        this.r = null;
+        this.tmpP1 = new AFRAME.THREE.Vector3();
+        this.tmpP2 = new AFRAME.THREE.Vector3();
+        this.r = new Float32Array(2 * uvPair.kMaxV * uvPair.kMaxV);
+        const t = new uvPair(0, 0);
+        const b = new uvPair(0, uvPair.kMaxV);
+        const midV = Math.round(uvPair.kWidth / 4);
+        const pitchU = Math.round(uvPair.kWidth / 4);
+        const m1 = new uvPair(0, midV);
+        const m2 = new uvPair(pitchU, midV);
+        const m3 = new uvPair(2 * pitchU, midV);
+        const m4 = new uvPair(3 * pitchU, midV);
+        const m5 = new uvPair(4 * pitchU, midV);
+        for (let u = 0; u < uvPair.kWidth; ++u) {
+            this.setUV(u, t.v, 1);
+            this.setUV(u, b.v, 1);
+        }
+        this.maybeSet(m1, 1);
+        this.maybeSet(m2, 1);
+        this.maybeSet(m3, 1);
+        this.maybeSet(m4, 1);
+        this.plasma(t, m1, m2, 0);
+        this.plasma(t, m2, m3, 0);
+        this.plasma(t, m3, m4, 0);
+        this.plasma(t, m4, m5, 0);
+        this.plasma(b, m1, m2, 0);
+        this.plasma(b, m2, m3, 0);
+        this.plasma(b, m3, m4, 0);
+        this.plasma(b, m4, m5, 0);
+        const f = (u, v, target) => {
+            if (u === 1) {
+                u = 0;
+            }
+            if (v === 1) {
+                v = 0;
+            }
+            const theta = Math.PI * 2 * u;
+            const rho = Math.PI * v;
+            const i = Math.floor(u * uvPair.kWidth);
+            const j = Math.floor(v * uvPair.kWidth / 2);
+            const r = this.r[i + j * uvPair.kWidth] * 3.0;
+            const rr = r * Math.sin(rho);
+            target.set(rr * Math.cos(theta), r * Math.cos(rho), rr * Math.sin(theta));
+        };
+        const geometry = new AFRAME.THREE.ParametricGeometry(f, /*slices=*/ 360, /*stacks=*/ 180);
+        const material = new AFRAME.THREE.MeshStandardMaterial({
+            color: '#88f',
+        });
+        material.side = AFRAME.THREE.DoubleSide;
+        const mesh = new AFRAME.THREE.Mesh(geometry, material);
+        const entity = document.createElement('a-entity');
+        entity.object3D = mesh;
+        scene.appendChild(entity);
+    }
+    setUV(u, v, val) {
+        this.r[u + v * uvPair.kWidth] = val;
+    }
+    maybeSet(p, val) {
+        const v = p.v;
+        const u = (v === 0 || v === uvPair.kMaxV) ? 0 : p.u % (uvPair.kWidth);
+        if (this.r[u + v * uvPair.kWidth] === 0) {
+            this.r[u + v * uvPair.kWidth] = val;
+        }
+    }
+    get(p) {
+        const v = p.v;
+        const u = (v === 0 || v === uvPair.kMaxV) ? 0 : p.u % (uvPair.kWidth);
+        return this.r[u + v * uvPair.kWidth];
+    }
+    subdivide(p1, p2, magnitude) {
+        const val1 = this.get(p1);
+        const val2 = this.get(p2);
+        const mid = uvPair.mid(p1, p2);
+        if (this.get(mid) === 0) {
+            const newVal = (Math.random() - 0.5) * magnitude +
+                (val1 + val2) / 2;
+            this.maybeSet(mid, newVal);
+        }
+        return mid;
+    }
+    // By construction, a must always be the top or bottom of the triangle.
+    plasma(a, b, c, depth) {
+        if (a.close(b) && b.close(c) && c.close(a)) {
+            return; // nothing to do.
+        }
+        if (depth > 20) {
+            throw new Error('Exhausted!');
+        }
+        const magnitude = this.getMagnitude(b, c);
+        const nextTri = [];
+        const ab = this.subdivide(a, b, magnitude);
+        const bc = this.subdivide(b, c, magnitude);
+        const ac = this.subdivide(a, c, magnitude);
+        this.plasma(a, ab, ac, depth + 1);
+        this.plasma(bc, ab, ac, depth + 1);
+        this.plasma(ab, b, bc, depth + 1);
+        this.plasma(ac, bc, c, depth + 1);
+    }
+    getMagnitude(uv1, uv2) {
+        const deltaURad = Math.abs(uv1.u - uv2.u) / uvPair.kWidth * Math.PI * 2;
+        if (uv1.v !== uv2.v) {
+            throw new Error(`Misformed base: ${JSON.stringify(uv1)} ${JSON.stringify(uv2)}`);
+        }
+        ;
+        // Measured from north pole.
+        const vrad = uv1.v / uvPair.kWidth * Math.PI * 2;
+        return deltaURad * Math.sin(vrad) * 0.1;
+    }
+    // v3 is 3-space y = up, z = back, x = right
+    // v2 is longitude, latitude measured in radians.
+    v2ToV3(v2, v3) {
+        const r = Math.cos(v2.y);
+        v3.set(r * Math.cos(v2.x), Math.sin(v2.y), r * Math.sin(v2.x));
+    }
+    // v3 must be normalized.
+    v3ToV2(v3, v2) {
+        v2.set(Math.atan2(v3.x, v3.z), Math.asin(v2.y));
+    }
+    midV2(xy1, xy2, xyTarget) {
+        this.v2ToV3(xy1, this.tmpP1);
+        this.v2ToV3(xy2, this.tmpP2);
+        this.tmpP2.add(this.tmpP1).normalize();
+        this.v3ToV2(this.tmpP2, xyTarget);
+    }
+}
+exports.Octohedron = Octohedron;
+//# sourceMappingURL=octohedron.js.map
 
 /***/ }),
 
