@@ -16,7 +16,7 @@ export interface LevelSpec {
 class AbstractLevel {
   private colorMapInternal = new Map<number, string>();
   private indexMapInternal = new Map<string, number>();
-  private startTimeMs = null;
+  private startTimeMs = 0;
   private elapsedMs = null;
   constructor(colors: string[]) {
     for (const c of colors) {
