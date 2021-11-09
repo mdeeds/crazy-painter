@@ -1125,7 +1125,7 @@ class AbstractLevel {
     constructor(colors) {
         this.colorMapInternal = new Map();
         this.indexMapInternal = new Map();
-        this.startTimeMs = null;
+        this.startTimeMs = 0;
         this.elapsedMs = null;
         for (const c of colors) {
             this.setColor(this.colorMapInternal.size, c);
