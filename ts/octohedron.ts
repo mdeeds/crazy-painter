@@ -36,14 +36,13 @@ class uvPair {
     }
     return (Math.abs(this.v - other.v) <= 1 &&
       Math.abs(this.u - other.u) <= 1);
-
   }
 }
 
 export class Octohedron {
   private r: Float32Array = null;
   constructor(scene: AFRAME.Entity) {
-    this.r = new Float32Array(2 * uvPair.kMaxV * uvPair.kMaxV);
+    this.r = new Float32Array(uvPair.kWidth * uvPair.kWidth / 2);
 
     const t = new uvPair(0, 0);
     const b = new uvPair(0, uvPair.kMaxV);
@@ -73,14 +72,28 @@ export class Octohedron {
     this.plasma(b, m3, m4, 0);
     this.plasma(b, m4, m5, 0);
 
+    let prev = 1.0;
+    for (let i = 0; i < this.r.length; ++i) {
+      if (!(this.r[i] > 0.1) || this.r[i] > 5) {
+        this.r[i] = prev;
+      } else {
+        prev = this.r[i];
+      }
+    }
+
     const f = (u: number, v: number, target: any) => {
       if (u === 1) { u = 0; }
-      if (v === 1) { v = 0; }
       const theta = Math.PI * 2 * u;
       const rho = Math.PI * v;
-      const i = Math.floor(u * uvPair.kWidth);
-      const j = Math.floor(v * uvPair.kWidth / 2);
-      const r = this.r[i + j * uvPair.kWidth] * 3.0;
+      const i = Math.min(uvPair.kWidth - 1, Math.max(0,
+        Math.floor(u * uvPair.kWidth)));
+      const j = Math.min(uvPair.kMaxV, Math.max(0,
+        Math.floor(v * uvPair.kWidth / 2)));
+
+      const r = this.r[i + j * uvPair.kWidth] * 2.0;
+      if (!(r > 0.01)) {
+        throw new Error(`out of range.`);
+      }
 
       const rr = r * Math.sin(rho);
       target.set(rr * Math.cos(theta),
@@ -97,6 +110,7 @@ export class Octohedron {
     material.side = AFRAME.THREE.DoubleSide;
     const mesh = new AFRAME.THREE.Mesh(geometry, material);
     const entity = document.createElement('a-entity');
+    entity.setAttribute('position', '0 1 0');
     entity.object3D = mesh;
     scene.appendChild(entity);
   }
@@ -125,6 +139,9 @@ export class Octohedron {
     if (this.get(mid) === 0) {
       const newVal = (Math.random() - 0.5) * magnitude +
         (val1 + val2) / 2;
+      if (!(newVal > 0.01)) {
+        throw new Error(`Illegal: ${newVal}`);
+      }
       this.maybeSet(mid, newVal);
     }
     return mid;
@@ -157,7 +174,7 @@ export class Octohedron {
     };
     // Measured from north pole.
     const vrad = uv1.v / uvPair.kWidth * Math.PI * 2;
-    return deltaURad * Math.sin(vrad) * 0.1;
+    return deltaURad * Math.sin(vrad) * 0.4;
   }
 
 
