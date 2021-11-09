@@ -1,3 +1,5 @@
+import { Debug } from "./debug";
+
 export interface LevelSpec {
   width(): number;
   height(): number;
@@ -6,11 +8,16 @@ export interface LevelSpec {
   // Maps the color numbers to the associated color string
   getColorMap(): Map<number, string>;
   getIndexForColor(color: string): number;
+  getElapsedMs(): number;
+  tick(timeMs: number, timeDeltaMs: number): void;
+  timeToNextCritterMs(): number;
 }
 
 class AbstractLevel {
   private colorMapInternal = new Map<number, string>();
   private indexMapInternal = new Map<string, number>();
+  private startTimeMs = null;
+  private elapsedMs = null;
   constructor(colors: string[]) {
     for (const c of colors) {
       this.setColor(this.colorMapInternal.size, c);
@@ -28,6 +35,27 @@ class AbstractLevel {
       this.setColor(this.indexMapInternal.size, color);
     }
     return this.indexMapInternal.get(color);
+  }
+  tick(timeMs: number, timeDeltaMs: number) {
+    if (this.startTimeMs === 0) {
+      this.startTimeMs = timeMs;
+    }
+    this.elapsedMs = timeMs - this.startTimeMs;
+  }
+  getElapsedMs(): number {
+    return this.elapsedMs;
+  }
+  timeToNextCritterMs() {
+    if (this.elapsedMs < 30000) {
+      Debug.set('critter rate', 'Fast');
+      return 3000;
+    } else if (this.elapsedMs < 60000) {
+      Debug.set('critter rate', 'Medium');
+      return 6000;
+    } else {
+      Debug.set('critter rate', 'Slow');
+      return 60000;
+    }
   }
 }
 

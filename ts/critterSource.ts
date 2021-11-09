@@ -6,6 +6,7 @@ import { AssetLibrary } from "./assetLibrary";
 import { Critter, CritterParts } from "./critter";
 import { Debug } from "./debug";
 import { EphemeralText } from "./ephemeralText";
+import { LevelSource } from "./levelSource";
 import { Score } from "./score";
 import { Wall, WallHandle } from "./wall";
 
@@ -18,7 +19,7 @@ export class CritterSource {
   private showLizards = true;
 
   constructor(private wallHandle: WallHandle, private assetLibrary: AssetLibrary,
-    private score: Score, private eText: EphemeralText) {
+    private score: Score, private eText: EphemeralText, private levelSource: LevelSource) {
     const url = new URL(document.URL);
     const numLizards = url.searchParams.get('lizards');
     if (numLizards === '0') {
@@ -58,7 +59,8 @@ export class CritterSource {
     }
     this.timeToNextCritterMs -= timeDeltaMs;
     if (this.timeToNextCritterMs <= 0) {
-      this.timeToNextCritterMs = 3000;
+      this.timeToNextCritterMs =
+        this.levelSource.getCurrentLevel().timeToNextCritterMs();
       const turtleEnt = document.createElement('a-entity');
       turtleEnt.setAttribute('position',
         `0 ${this.wallHandle.wall.wallY} ${this.wallHandle.wall.wallZ}`);

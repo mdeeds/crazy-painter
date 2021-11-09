@@ -96,7 +96,7 @@ AFRAME.registerComponent("go", {
     wallHandle.wall = new Wall(
       levelSource.nextLevel(), eText, score, assetLibrary,
       sfx);
-    critters = new CritterSource(wallHandle, assetLibrary, score, eText);
+    critters = new CritterSource(wallHandle, assetLibrary, score, eText, levelSource);
 
     brush = new Brush(document.querySelector('#player'),
       '#f80',
@@ -154,6 +154,9 @@ AFRAME.registerComponent("go", {
           wallHandle.wall = new Wall(levelSource.nextLevel(), eText, score, assetLibrary,
             sfx);
         }
+      }
+      if (levelSource.getCurrentLevel() != null) {
+        levelSource.getCurrentLevel().tick(timeMs, timeDeltaMs);
       }
     } catch (e) {
       Debug.set('error', `Tick error: ${e}`);

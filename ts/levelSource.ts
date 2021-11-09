@@ -2,6 +2,7 @@ import { LargeLevel, LevelSpec, PatternLevel, SmallLevel } from "./levelSpec";
 
 export class LevelSource {
   private currentLevel = 0;
+  private currentLevelSpec: LevelSpec = null;
   constructor() {
   }
 
@@ -25,7 +26,12 @@ export class LevelSource {
 
   nextLevel(): LevelSpec {
     const result = this.getLevelSpec(this.currentLevel);
+    this.currentLevelSpec = result;
     this.currentLevel++;
     return result;
+  }
+
+  getCurrentLevel(): LevelSpec {
+    return this.currentLevelSpec;
   }
 }

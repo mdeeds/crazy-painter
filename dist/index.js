@@ -581,11 +581,12 @@ exports.CritterSource = void 0;
 const animatedObject_1 = __webpack_require__(143);
 const critter_1 = __webpack_require__(918);
 class CritterSource {
-    constructor(wallHandle, assetLibrary, score, eText) {
+    constructor(wallHandle, assetLibrary, score, eText, levelSource) {
         this.wallHandle = wallHandle;
         this.assetLibrary = assetLibrary;
         this.score = score;
         this.eText = eText;
+        this.levelSource = levelSource;
         this.timeToNextCritterMs = 1000;
         this.critters = [];
         this.lizards = [];
@@ -624,7 +625,8 @@ class CritterSource {
             }
             this.timeToNextCritterMs -= timeDeltaMs;
             if (this.timeToNextCritterMs <= 0) {
-                this.timeToNextCritterMs = 3000;
+                this.timeToNextCritterMs =
+                    this.levelSource.getCurrentLevel().timeToNextCritterMs();
                 const turtleEnt = document.createElement('a-entity');
                 turtleEnt.setAttribute('position', `0 ${this.wallHandle.wall.wallY} ${this.wallHandle.wall.wallZ}`);
                 turtleEnt.setAttribute('rotation', '90 0 0');
@@ -939,7 +941,7 @@ AFRAME.registerComponent("go", {
             tickers.push(eText);
             sfx = yield sfx_1.SFX.make();
             wallHandle.wall = new wall_1.Wall(levelSource.nextLevel(), eText, score, assetLibrary, sfx);
-            critters = new critterSource_1.CritterSource(wallHandle, assetLibrary, score, eText);
+            critters = new critterSource_1.CritterSource(wallHandle, assetLibrary, score, eText, levelSource);
             brush = new brush_1.Brush(document.querySelector('#player'), '#f80', document.querySelector('#leftHand').object3D, document.querySelector('#rightHand').object3D, wallHandle, critters);
             makeCanEntity(scene, assetLibrary, '#f80', '-0.5 0 -0.2');
             makeCanEntity(scene, assetLibrary, '#0f0', '0.5 0 -0.2');
@@ -1005,6 +1007,9 @@ AFRAME.registerComponent("go", {
                     wallHandle.wall = new wall_1.Wall(levelSource.nextLevel(), eText, score, assetLibrary, sfx);
                 }
             }
+            if (levelSource.getCurrentLevel() != null) {
+                levelSource.getCurrentLevel().tick(timeMs, timeDeltaMs);
+            }
         }
         catch (e) {
             debug_1.Debug.set('error', `Tick error: ${e}`);
@@ -1064,6 +1069,7 @@ const levelSpec_1 = __webpack_require__(811);
 class LevelSource {
     constructor() {
         this.currentLevel = 0;
+        this.currentLevelSpec = null;
     }
     getLevelSpec(levelNumber) {
         switch (levelNumber % 8) {
@@ -1085,8 +1091,12 @@ class LevelSource {
     }
     nextLevel() {
         const result = this.getLevelSpec(this.currentLevel);
+        this.currentLevelSpec = result;
         this.currentLevel++;
         return result;
+    }
+    getCurrentLevel() {
+        return this.currentLevelSpec;
     }
 }
 exports.LevelSource = LevelSource;
@@ -1095,16 +1105,19 @@ exports.LevelSource = LevelSource;
 /***/ }),
 
 /***/ 811:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PatternLevel = exports.SmallLevel = exports.LargeLevel = void 0;
+const debug_1 = __webpack_require__(756);
 class AbstractLevel {
     constructor(colors) {
         this.colorMapInternal = new Map();
         this.indexMapInternal = new Map();
+        this.startTimeMs = null;
+        this.elapsedMs = null;
         for (const c of colors) {
             this.setColor(this.colorMapInternal.size, c);
         }
@@ -1121,6 +1134,29 @@ class AbstractLevel {
             this.setColor(this.indexMapInternal.size, color);
         }
         return this.indexMapInternal.get(color);
+    }
+    tick(timeMs, timeDeltaMs) {
+        if (this.startTimeMs === 0) {
+            this.startTimeMs = timeMs;
+        }
+        this.elapsedMs = timeMs - this.startTimeMs;
+    }
+    getElapsedMs() {
+        return this.elapsedMs;
+    }
+    timeToNextCritterMs() {
+        if (this.elapsedMs < 30000) {
+            debug_1.Debug.set('critter rate', 'Fast');
+            return 3000;
+        }
+        else if (this.elapsedMs < 60000) {
+            debug_1.Debug.set('critter rate', 'Medium');
+            return 6000;
+        }
+        else {
+            debug_1.Debug.set('critter rate', 'Slow');
+            return 60000;
+        }
     }
 }
 class LargeLevel extends AbstractLevel {
@@ -1894,7 +1930,7 @@ class Wall {
         if (paintState.hasChanges) {
             this.updateCanvas();
             this.score.add(paintState.deltaPoints);
-            brush.removeSupply(paintState.deltaPoints);
+            brush.removeSupply(paintState.paintUsed);
             if (paintState.deltaPoints > 0) {
                 this.sfx.point();
                 this.eText.addText(`+${paintState.deltaPoints}`, paintState.sum_x / paintState.paintUsed, paintState.sum_y / paintState.paintUsed, this.wallZ + Math.random() * 0.05);
