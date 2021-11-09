@@ -244,7 +244,7 @@ export class Wall implements Ticker {
     if (paintState.hasChanges) {
       this.updateCanvas();
       this.score.add(paintState.deltaPoints);
-      brush.removeSupply(paintState.deltaPoints);
+      brush.removeSupply(paintState.paintUsed);
       if (paintState.deltaPoints > 0) {
         this.sfx.point();
         this.eText.addText(`+${paintState.deltaPoints}`,
